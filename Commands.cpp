@@ -118,3 +118,26 @@ void SmallShell::executeCommand(const char *cmd_line) {
   // cmd->execute();
   // Please note that you must fork smash process for some commands (e.g., external commands....)
 }
+
+string SmallShell::getPrompt() const {
+    return this->prompt;
+}
+
+void SmallShell::changePrompt(string new_prompt) {
+    this->prompt = new_prompt;
+}
+
+Command::Command(const char *cmd_line){
+    argc = _parseCommandLine(cmd_line, argv);
+}
+
+ChangePoromptCommand::ChangePoromptCommand(const char *cmd_line){
+    if (argc == 2)
+        prompt = string(argv[1]);
+    else
+        prompt = "smash";
+}
+
+void ChangePoromptCommand::execute() {
+    SmallShell::changePrompt(prompt);
+}

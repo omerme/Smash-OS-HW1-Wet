@@ -7,7 +7,9 @@
 #define COMMAND_MAX_ARGS (20)
 
 class Command {
-// TODO: Add your data members
+protected:
+    char** argv;
+    int argc;
  public:
   Command(const char* cmd_line);
   virtual ~Command();
@@ -28,6 +30,7 @@ class ExternalCommand : public Command {
   ExternalCommand(const char* cmd_line);
   virtual ~ExternalCommand() {}
   void execute() override;
+  // do we need child list?
 };
 
 class PipeCommand : public Command {
@@ -67,6 +70,14 @@ class ShowPidCommand : public BuiltInCommand {
   ShowPidCommand(const char* cmd_line);
   virtual ~ShowPidCommand() {}
   void execute() override;
+};
+
+class ChangePoromptCommand : public BuiltInCommand {
+    string prompt;
+public:
+    ChangePoromptCommand(const char* cmd_line);
+    virtual ~ChangePoromptCommand();
+    void execute() override;
 };
 
 class JobsList;
@@ -168,6 +179,7 @@ class SmallShell {
  private:
   // TODO: Add your data members
   SmallShell();
+  string prompt; //for chprompt
  public:
   Command *CreateCommand(const char* cmd_line);
   SmallShell(SmallShell const&)      = delete; // disable copy ctor
@@ -180,6 +192,8 @@ class SmallShell {
   }
   ~SmallShell();
   void executeCommand(const char* cmd_line);
+  void changePrompt(string new_prompt); //for chprompt
+  string getPrompt() const; //for chprompt
   // TODO: add extra methods as needed
 };
 
