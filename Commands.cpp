@@ -124,15 +124,18 @@ string SmallShell::getPrompt() const {
 }
 
 void SmallShell::changePrompt(string new_prompt) {
-    this->prompt = new_prompt;
+    prompt = new_prompt;
 }
 
 Command::Command(const char *cmd_line){
     argc = _parseCommandLine(cmd_line, argv);
 }
 
-ChangePoromptCommand::ChangePoromptCommand(const char *cmd_line){
-    if (argc == 2)
+BuiltInCommand::BuiltInCommand(const char *cmd_line): Command(cmd_line){}
+
+
+ChangePoromptCommand::ChangePoromptCommand(const char *cmd_line): BuiltInCommand(cmd_line){
+    if (argc >= 2)
         prompt = string(argv[1]);
     else
         prompt = "smash";
@@ -141,3 +144,29 @@ ChangePoromptCommand::ChangePoromptCommand(const char *cmd_line){
 void ChangePoromptCommand::execute() {
     SmallShell::changePrompt(prompt);
 }
+
+ChangeDirCommand::ChangeDirCommand(const char* cmd_line, char** plastPwd): BuiltInCommand(cmd_line), prev(plastPwd){}
+
+void ChangeDirCommand::execute() {
+    if (argc > 2){
+        cerr << "smash error: cd: too many arguments";
+        return;
+    }
+    int res;
+    string prev_dir = string(prev[0]); //save the prev in case of an error
+    // TODO: get curr dir to update prev for next "-" call
+    if (string(argv[1]) == "-"){
+        if (prev_dir.empty()){
+            cerr << "smash error: cd: OLDPWD not set";
+            return;
+        }
+        res = chdir(prev_dir.c_str());
+    }
+    else{
+        res = chdir(argv[1]);
+    }
+    if (res < 0){
+        perror("smash error: chdir failed");
+    }
+}
+

@@ -52,7 +52,9 @@ class RedirectionCommand : public Command {
 };
 
 class ChangeDirCommand : public BuiltInCommand {
-// TODO: Add your data members public:
+// TODO: Add your data members
+    char** prev;
+public:
   ChangeDirCommand(const char* cmd_line, char** plastPwd);
   virtual ~ChangeDirCommand() {}
   void execute() override;
@@ -73,7 +75,7 @@ class ShowPidCommand : public BuiltInCommand {
 };
 
 class ChangePoromptCommand : public BuiltInCommand {
-    string prompt;
+    std::string prompt;
 public:
     ChangePoromptCommand(const char* cmd_line);
     virtual ~ChangePoromptCommand();
@@ -177,24 +179,24 @@ class KillCommand : public BuiltInCommand {
 
 class SmallShell {
  private:
-  // TODO: Add your data members
-  SmallShell();
-  string prompt; //for chprompt
+    // TODO: Add your data members
+    SmallShell();
+    static std::string prompt; //for chprompt
  public:
-  Command *CreateCommand(const char* cmd_line);
-  SmallShell(SmallShell const&)      = delete; // disable copy ctor
-  void operator=(SmallShell const&)  = delete; // disable = operator
-  static SmallShell& getInstance() // make SmallShell singleton
-  {
-    static SmallShell instance; // Guaranteed to be destroyed.
-    // Instantiated on first use.
-    return instance;
-  }
-  ~SmallShell();
-  void executeCommand(const char* cmd_line);
-  void changePrompt(string new_prompt); //for chprompt
-  string getPrompt() const; //for chprompt
-  // TODO: add extra methods as needed
+    Command *CreateCommand(const char* cmd_line);
+    SmallShell(SmallShell const&)      = delete; // disable copy ctor
+    void operator=(SmallShell const&)  = delete; // disable = operator
+    static SmallShell& getInstance() // make SmallShell singleton
+    {
+        static SmallShell instance; // Guaranteed to be destroyed.
+        // Instantiated on first use.
+        return instance;
+    }
+     ~SmallShell();
+     void executeCommand(const char* cmd_line);
+     static void changePrompt(std::string new_prompt); //for chprompt
+     std::string getPrompt() const; //for chprompt
+     // TODO: add extra methods as needed
 };
 
 #endif //SMASH_COMMAND_H_
