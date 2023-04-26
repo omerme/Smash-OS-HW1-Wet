@@ -151,7 +151,9 @@ Command::Command(const char *cmd_line){
     argc = _parseCommandLine(cmd_line, argv);
 }
 
-BuiltInCommand::BuiltInCommand(const char *cmd_line): Command(cmd_line){}
+BuiltInCommand::BuiltInCommand(const char *cmd_line): Command(cmd_line){
+
+}
 
 
 ChangePoromptCommand::ChangePoromptCommand(const char *cmd_line): BuiltInCommand(cmd_line){
@@ -162,7 +164,7 @@ ChangePoromptCommand::ChangePoromptCommand(const char *cmd_line): BuiltInCommand
 }
 
 void ChangePoromptCommand::execute() {
-    SmallShell::changePrompt(prompt);
+    SmallShell::getInstance().setPrompt(prompt);
 }
 
 
@@ -190,20 +192,22 @@ void ChangeDirCommand::execute() {
         return;
     }
     int res;
-    string prev_dir = string(prev[0]); //save the prev in case of an error
-    // TODO: get curr dir to update prev for next "-" call
-    if (string(argv[1]) == "-"){
+    string prev_dir = SmallShell::getInstance().getPrevWD(); //save the prev dir
+    if (string(argv[1]) == "-"){             ///cd with "-" arg
         if (prev_dir.empty()){
             cerr << "smash error: cd: OLDPWD not set";
             return;
         }
         res = chdir(prev_dir.c_str());
     }
-    else{
+    else{                                   ///cd with path arg
         res = chdir(argv[1]);
     }
-    if (res < 0){
+    if (res < 0){                            ///check chdir ret val
         perror("smash error: chdir failed");
+        return;
     }
+    SmallShell::getInstance().setPrevWD(SmallShell::getInstance().getCurWD()); //update prev dir to old curr dir
+    SmallShell::getInstance().setCurWD(getcwd(nullptr,0)); //update curr dir
 }
 
