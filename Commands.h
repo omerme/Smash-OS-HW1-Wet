@@ -197,18 +197,18 @@ class SmallShell {
         // Instantiated on first use.
         return instance;
     }
+    ~SmallShell();
+    void executeCommand(const char* cmd_line);
+    void changePrompt(std::string new_prompt); //for chprompt
+
+    ///added methods:
     std::string getCurWD() const;
     void setCurWD(std::string newCurWD);
     std::string getPrevWD() const;
     void setPrevWD(std::string newPrevWD);
     std::string getPrompt() const; //for chprompt
     void setPrompt(std::string newPrompt); //for chprompt
-    ~SmallShell();
-    void executeCommand(const char* cmd_line);
-    void changePrompt(std::string new_prompt); //for chprompt
 
-
-    // TODO: add extra methods as needed
 };
 
 #endif //SMASH_COMMAND_H_
