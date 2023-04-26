@@ -180,8 +180,13 @@ class KillCommand : public BuiltInCommand {
 class SmallShell {
  private:
     // TODO: Add your data members
+    std::string prompt; //for chprompt
+    std::string curWD;
+    std::string prevWD;
+    /// add job list
+    /// add fg job
+
     SmallShell();
-    static std::string prompt; //for chprompt
  public:
     Command *CreateCommand(const char* cmd_line);
     SmallShell(SmallShell const&)      = delete; // disable copy ctor
@@ -192,11 +197,18 @@ class SmallShell {
         // Instantiated on first use.
         return instance;
     }
-     ~SmallShell();
-     void executeCommand(const char* cmd_line);
-     static void changePrompt(std::string new_prompt); //for chprompt
-     std::string getPrompt() const; //for chprompt
-     // TODO: add extra methods as needed
+    std::string getCurWD() const;
+    void setCurWD(std::string newCurWD);
+    std::string getPrevWD() const;
+    void setPrevWD(std::string newPrevWD);
+    std::string getPrompt() const; //for chprompt
+    void setPrompt(std::string newPrompt); //for chprompt
+    ~SmallShell();
+    void executeCommand(const char* cmd_line);
+    void changePrompt(std::string new_prompt); //for chprompt
+
+
+    // TODO: add extra methods as needed
 };
 
 #endif //SMASH_COMMAND_H_

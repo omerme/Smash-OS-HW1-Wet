@@ -40,7 +40,7 @@ string _trim(const std::string& s)
 }
 
 int _parseCommandLine(const char* cmd_line, char** args) {
-  FUNC_ENTRY()
+  FUNC_ENTRY() /// whats that ?
   int i = 0;
   std::istringstream iss(_trim(string(cmd_line)).c_str());
   for(std::string s; iss >> s; ) {
@@ -51,7 +51,7 @@ int _parseCommandLine(const char* cmd_line, char** args) {
   }
   return i;
 
-  FUNC_EXIT()
+  FUNC_EXIT() /// whats that ?
 }
 
 bool _isBackgroundComamnd(const char* cmd_line) {
@@ -79,12 +79,30 @@ void _removeBackgroundSign(char* cmd_line) {
 
 // TODO: Add your implementation for classes in Commands.h 
 
-SmallShell::SmallShell() {
-// TODO: add your implementation
+SmallShell::SmallShell() : prompt("smash"), prevWD()
+{
+    /// omer 26.4
+    curWD = getcwd(nullptr,0);
 }
 
 SmallShell::~SmallShell() {
-// TODO: add your implementation
+
+}
+
+std::string SmallShell::getCurWD() const {
+    return curWD;
+}
+void SmallShell::setCurWD(std::string newCurWD) {
+    curWD = newCurWD;
+}
+std::string SmallShell::getPrevWD() const {
+    return prevWD;
+}
+void SmallShell::setPrevWD(std::string newPrevWD) {
+    prevWD = newPrevWD;
+}
+void SmallShell::setPrompt(std::string newPrompt) {
+     prompt = newPrompt;
 }
 
 /**
@@ -109,6 +127,7 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
   }
   */
   return nullptr;
+
 }
 
 void SmallShell::executeCommand(const char *cmd_line) {
@@ -128,6 +147,7 @@ void SmallShell::changePrompt(string new_prompt) {
 }
 
 Command::Command(const char *cmd_line){
+    ///dynamyc cast isBuiltIn
     argc = _parseCommandLine(cmd_line, argv);
 }
 
@@ -144,6 +164,23 @@ ChangePoromptCommand::ChangePoromptCommand(const char *cmd_line): BuiltInCommand
 void ChangePoromptCommand::execute() {
     SmallShell::changePrompt(prompt);
 }
+
+
+ShowPidCommand::ShowPidCommand(const char* cmd_line) : BuiltInCommand(cmd_line) {}
+
+void ShowPidCommand::execute()
+{
+    cout << "pid is " << getpid();
+}
+
+
+GetCurrDirCommand::GetCurrDirCommand(const char* cmd_line) : BuiltInCommand(cmd_line) {}
+
+void GetCurrDirCommand::execute()
+{
+    cout << SmallShell::getInstance().getCurWD();
+}
+
 
 ChangeDirCommand::ChangeDirCommand(const char* cmd_line, char** plastPwd): BuiltInCommand(cmd_line), prev(plastPwd){}
 
