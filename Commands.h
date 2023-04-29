@@ -5,6 +5,7 @@
 
 #define COMMAND_ARGS_MAX_LENGTH (200)
 #define COMMAND_MAX_ARGS (20)
+//#define MAX_PARAMS 20
 
 class Command {
 protected:
@@ -84,6 +85,8 @@ public:
 
 class JobsList;
 class QuitCommand : public BuiltInCommand {
+    /// omer 29/04 - debug - added for now:
+
 // TODO: Add your data members
 public:
   QuitCommand(const char* cmd_line, JobsList* jobs);

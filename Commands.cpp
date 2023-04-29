@@ -10,6 +10,9 @@
 using namespace std;
 
 const std::string WHITESPACE = " \n\r\t\f\v";
+/// omer 29/04 - debug
+const int MAX_PARAMS = 20;
+const int MAX_LINE_WORDS = MAX_PARAMS + 2;
 
 #if 0
 #define FUNC_ENTRY()  \
@@ -148,8 +151,19 @@ void SmallShell::changePrompt(string new_prompt) {
 
 Command::Command(const char *cmd_line){
     ///dynamyc cast isBuiltIn
+    /// omer 29/04 - debug:
+    argv = (char**)malloc(MAX_LINE_WORDS*sizeof(char*));
     argc = _parseCommandLine(cmd_line, argv);
 }
+
+/// omer 29/04 - debug - added command d'tor:
+Command::~Command() {
+    for(int i=0; i<argc; i++) { ///omer 29/04 - not sure about number if deletions!
+        free(argv[i]);
+    }
+    free(argv);
+}
+
 
 BuiltInCommand::BuiltInCommand(const char *cmd_line): Command(cmd_line){
 
@@ -162,6 +176,10 @@ ChangePoromptCommand::ChangePoromptCommand(const char *cmd_line): BuiltInCommand
     else
         prompt = "smash";
 }
+
+/// omer 29/04 - debug - added ChangePoromptCommand d'tor:
+ChangePoromptCommand::~ChangePoromptCommand() {}
+
 
 void ChangePoromptCommand::execute() {
     SmallShell::getInstance().setPrompt(prompt);
@@ -209,5 +227,15 @@ void ChangeDirCommand::execute() {
     }
     SmallShell::getInstance().setPrevWD(SmallShell::getInstance().getCurWD()); //update prev dir to old curr dir
     SmallShell::getInstance().setCurWD(getcwd(nullptr,0)); //update curr dir
+}
+
+
+QuitCommand::QuitCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(cmd_line) {
+    jobs = nullptr; /// omer 29/04 - debug - just for now..
+}
+
+void QuitCommand::execute() {
+    cout << "smash: exit for test";
+    exit(0);
 }
 
