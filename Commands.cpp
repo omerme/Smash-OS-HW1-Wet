@@ -11,8 +11,18 @@ using namespace std;
 
 const std::string WHITESPACE = " \n\r\t\f\v";
 /// omer 29/04 - debug
+//const std::vector<string> builtInCommands = {"chprompt", "showpid", "pwd", "cd", "jobs", "fg", "bg", "quit", "kill"};
 const int MAX_PARAMS = 20;
 const int MAX_LINE_WORDS = MAX_PARAMS + 2;
+//0       1   2       20    21  --> len = 22 total
+//sleep arg1 arg2 .. arg20  &
+
+/** when adding a command:
+ * 1. implement c'tor, d'tor and execute
+ * 2. add command name to SmallShell::CreateCommand
+ * 3. if built-in - add:  _removeBackgroundSign(cmd_line);
+ * 4. add to SmallShell::execute (if needed)
+ * **/
 
 #if 0
 #define FUNC_ENTRY()  \
@@ -88,9 +98,7 @@ SmallShell::SmallShell() : prompt("smash"), prevWD()
     curWD = getcwd(nullptr,0);
 }
 
-SmallShell::~SmallShell() {
-
-}
+SmallShell::~SmallShell() { }
 
 std::string SmallShell::getCurWD() const {
     return curWD;
@@ -105,35 +113,64 @@ void SmallShell::setPrevWD(std::string newPrevWD) {
     prevWD = newPrevWD;
 }
 void SmallShell::setPrompt(std::string newPrompt) {
-     prompt = newPrompt;
+    prompt = newPrompt;
 }
 
 /**
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
-Command * SmallShell::CreateCommand(const char* cmd_line) {
-	// For example:
-/*
-  string cmd_s = _trim(string(cmd_line));
-  string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
+Command * SmallShell::CreateCommand(char* cmd_line) {
+	/// add more?
+	string cmd_s = _trim(string(cmd_line));
+    string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
 
-  if (firstWord.compare("pwd") == 0) {
-    return new GetCurrDirCommand(cmd_line);
-  }
-  else if (firstWord.compare("showpid") == 0) {
-    return new ShowPidCommand(cmd_line);
-  }
-  else if ...
-  .....
-  else {
-    return new ExternalCommand(cmd_line);
-  }
-  */
-  return nullptr;
-
+    if (firstWord.compare("chprompt") == 0) {
+        _removeBackgroundSign(cmd_line);
+        return new ChangePoromptCommand(cmd_line);
+    }
+    else if (firstWord.compare("showpid") == 0) {
+        _removeBackgroundSign(cmd_line);
+        return new ShowPidCommand(cmd_line);
+    }
+    else if (firstWord.compare("pwd") == 0) {
+        _removeBackgroundSign(cmd_line);
+        return new GetCurrDirCommand(cmd_line);
+    }
+    else if (firstWord.compare("cd") == 0) {
+        _removeBackgroundSign(cmd_line);
+        return new ChangeDirCommand(cmd_line, nullptr);
+    }
+    else if (firstWord.compare("quit") == 0) {
+        _removeBackgroundSign(cmd_line);
+        return new QuitCommand(cmd_line, nullptr); /// for jobs: change nullptr to joblist
+    }
+    else if (firstWord.compare("") == 0) {
+        cout << "oops! empty line!";
+    }
+    else {
+        cout << "oops! external";
+        //return new ExternalCommand(cmd_line);
+    }
+    /**
+        else {
+            return new ExternalCommand(cmd_line);
+        }
+     * **/
+    return nullptr;
 }
 
-void SmallShell::executeCommand(const char *cmd_line) {
+/// need to debug - something caused segfault (we played
+void SmallShell::executeCommand(const char *cmd_line_in)
+{
+    char *cmd_line = new char[strlen(cmd_line_in)+1]();
+    strcpy(cmd_line, cmd_line_in);
+    ///if built-in:
+    Command* cmd = CreateCommand(cmd_line);
+    cmd->execute();
+    if(true) { /// if built-in
+        delete cmd;
+    }
+    delete[] cmd_line;
   // TODO: Add your implementation here
   // for example:
   // Command* cmd = CreateCommand(cmd_line);
@@ -190,7 +227,7 @@ ShowPidCommand::ShowPidCommand(const char* cmd_line) : BuiltInCommand(cmd_line) 
 
 void ShowPidCommand::execute()
 {
-    cout << "pid is " << getpid();
+    cout << "smash pid is " << getpid() << endl;
 }
 
 
@@ -198,7 +235,7 @@ GetCurrDirCommand::GetCurrDirCommand(const char* cmd_line) : BuiltInCommand(cmd_
 
 void GetCurrDirCommand::execute()
 {
-    cout << SmallShell::getInstance().getCurWD();
+    cout << SmallShell::getInstance().getCurWD() << endl;
 }
 
 
@@ -206,14 +243,14 @@ ChangeDirCommand::ChangeDirCommand(const char* cmd_line, char** plastPwd): Built
 
 void ChangeDirCommand::execute() {
     if (argc > 2){
-        cerr << "smash error: cd: too many arguments";
+        cerr << "smash error: cd: too many arguments" << endl;
         return;
     }
     int res;
     string prev_dir = SmallShell::getInstance().getPrevWD(); //save the prev dir
     if (string(argv[1]) == "-"){             ///cd with "-" arg
         if (prev_dir.empty()){
-            cerr << "smash error: cd: OLDPWD not set";
+            cerr << "smash error: cd: OLDPWD not set" << endl;
             return;
         }
         res = chdir(prev_dir.c_str());
@@ -235,7 +272,6 @@ QuitCommand::QuitCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(
 }
 
 void QuitCommand::execute() {
-    cout << "smash: exit for test";
     exit(0);
 }
 
