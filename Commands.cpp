@@ -9,6 +9,13 @@
 
 using namespace std;
 
+#define DO_SYS( syscall ) do { \
+            if( (syscall) == -1) { \
+                perror ( "smash error: #syscall failed" ); \
+                exit(1);               \
+            }                      \
+        } while(0)
+
 const std::string WHITESPACE = " \n\r\t\f\v";
 /// omer 29/04 - debug
 //const std::vector<string> builtInCommands = {"chprompt", "showpid", "pwd", "cd", "jobs", "fg", "bg", "quit", "kill"};
@@ -151,11 +158,6 @@ Command * SmallShell::CreateCommand(char* cmd_line) {
         cout << "oops! external";
         //return new ExternalCommand(cmd_line);
     }
-    /**
-        else {
-            return new ExternalCommand(cmd_line);
-        }
-     * **/
     return nullptr;
 }
 
@@ -186,7 +188,7 @@ void SmallShell::changePrompt(string new_prompt) {
     prompt = new_prompt;
 }
 
-Command::Command(const char *cmd_line){
+Command::Command(const char *cmd_line) {
     ///dynamyc cast isBuiltIn
     /// omer 29/04 - debug:
     argv = (char**)malloc(MAX_LINE_WORDS*sizeof(char*));
@@ -202,8 +204,50 @@ Command::~Command() {
 }
 
 
-BuiltInCommand::BuiltInCommand(const char *cmd_line): Command(cmd_line){
+BuiltInCommand::BuiltInCommand(const char *cmd_line) : Command(cmd_line) {}
 
+ExternalCommand::ExternalCommand(const char* cmd_line) : Command(cmd_line) {}
+
+SimpleExternalCommand::SimpleExternalCommand(const char* cmd_line) : ExternalCommand(cmd_line) {}
+
+void ExternalCommand::execute()
+{
+    pid_t pid = fork(); // fork failed
+    if (pid < 0) {
+        perror("smash error: fork failed");
+    } else if (pid == 0) { //child:
+        setpgrp();
+        //execvp(argv[0], &argv[1]);
+        execParams();
+        perror("smash error: execvp failed");
+    } else { //parent:
+        if (isBg) { // background - what?
+            DO_SYS(waitpid(pid, nullptr, WNOHANG)); ///is this bg ok?
+        }
+        else { // foreground
+            DO_SYS(waitpid(pid, nullptr, 0)); /// wstatus?
+        }
+    }
+}
+
+
+ComplexExternalCommand::ComplexExternalCommand(const char* cmd_line) : ExternalCommand(cmd_line) {
+    for(int i =0; i<argc; i++){
+        free(argv[i]);
+    }
+    free(argv);
+    argv = (char**)malloc(sizeof(char*)*3);
+    argv[0] = (char*)malloc(sizeof(char)*3);
+    strcpy(argv[0], "-c");
+    argv[1] = (char*)malloc(sizeof(char)* (strlen(cmd_line)+1));
+    strcpy(argv[1], cmd_line);
+    argv[2] = nullptr;
+    argc = 2;
+}
+
+
+void ComplexExternalCommand::execParams() {
+    DO_SYS(execvp("/bin/bash", argv));
 }
 
 
