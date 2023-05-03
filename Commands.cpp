@@ -240,13 +240,15 @@ ComplexExternalCommand::ComplexExternalCommand(const char* cmd_line) : ExternalC
         free(argv[i]);
     }
     free(argv);
-    argv = (char**)malloc(sizeof(char*)*3);
-    argv[0] = (char*)malloc(sizeof(char)*3);
-    strcpy(argv[0], "-c");
-    argv[1] = (char*)malloc(sizeof(char)* (strlen(cmd_line)+1));
-    strcpy(argv[1], cmd_line);
-    argv[2] = nullptr;
-    argc = 2;
+    argv = (char**)malloc(sizeof(char*)*4);
+    argv[0] = (char*) malloc(sizeof(char)*5);
+    strcpy(argv[0], "bash");
+    argv[1] = (char*)malloc(sizeof(char)*3);
+    strcpy(argv[1], "-c");
+    argv[2] = (char*)malloc(sizeof(char)* (strlen(cmd_line)+1));
+    strcpy(argv[2], cmd_line);
+    argv[3] = NULL;
+    argc = 3;
 }
 
 
