@@ -55,21 +55,21 @@ public:
 };
 
 class PipeCommand : public Command {
-  // TODO: Add your data members
+    // TODO: Add your data members
  public:
-  PipeCommand(const char* cmd_line);
-  virtual ~PipeCommand() {}
-  void execute() override;
+    explicit PipeCommand(const char* cmd_line);
+    virtual ~PipeCommand() {}
+    void execute() override;
 };
 
 class RedirectionCommand : public Command {
  // TODO: Add your data members
  public:
-  explicit RedirectionCommand(const char* cmd_line);
-  virtual ~RedirectionCommand() {}
-  void execute() override;
-  //void prepare() override;
-  //void cleanup() override;
+    explicit RedirectionCommand(const char* cmd_line); /// here there was an wxplicit;
+    virtual ~RedirectionCommand() {}
+    void execute() override;
+    //void prepare() override;
+    //void cleanup() override;
 };
 
 class ChangeDirCommand : public BuiltInCommand {

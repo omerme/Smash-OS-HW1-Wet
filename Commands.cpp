@@ -7,6 +7,7 @@
 #include <iomanip>
 #include "Commands.h"
 
+
 using namespace std;
 
 #define DO_SYS( syscall ) do { \
@@ -154,9 +155,10 @@ Command * SmallShell::CreateCommand(char* cmd_line) {
     else if (firstWord.compare("") == 0) {
         cout << "oops! empty line!";
     }
-    else {
-        cout << "oops! external";
-        //return new ExternalCommand(cmd_line);
+    else { //external
+        if (strchr(cmd_line, '*') || strchr(cmd_line, '?'))
+            return new ComplexExternalCommand(cmd_line);
+        return new SimpleExternalCommand(cmd_line);
     }
     return nullptr;
 }
@@ -251,6 +253,11 @@ void ComplexExternalCommand::execParams() {
 }
 
 
+void SimpleExternalCommand::execParams() {
+    DO_SYS(execvp(argv[0], &argv[1]));
+}
+
+
 ChangePoromptCommand::ChangePoromptCommand(const char *cmd_line): BuiltInCommand(cmd_line){
     if (argc >= 2)
         prompt = string(argv[1]);
@@ -290,22 +297,24 @@ void ChangeDirCommand::execute() {
         cerr << "smash error: cd: too many arguments" << endl;
         return;
     }
-    int res;
+    //int res;
     string prev_dir = SmallShell::getInstance().getPrevWD(); //save the prev dir
     if (string(argv[1]) == "-"){             ///cd with "-" arg
         if (prev_dir.empty()){
             cerr << "smash error: cd: OLDPWD not set" << endl;
             return;
         }
-        res = chdir(prev_dir.c_str());
+        DO_SYS(chdir(prev_dir.c_str()));
+        //res = chdir(prev_dir.c_str());
     }
     else{                                   ///cd with path arg
-        res = chdir(argv[1]);
-    }
+        DO_SYS(chdir(argv[1]));
+        //res = chdir(argv[1]);
+    }/*
     if (res < 0){                            ///check chdir ret val
-        perror("smash error: chdir failed");
+        //perror("smash error: chdir failed");
         return;
-    }
+    }*/
     SmallShell::getInstance().setPrevWD(SmallShell::getInstance().getCurWD()); //update prev dir to old curr dir
     SmallShell::getInstance().setCurWD(getcwd(nullptr,0)); //update curr dir
 }
