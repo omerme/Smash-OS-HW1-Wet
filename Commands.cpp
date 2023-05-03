@@ -208,7 +208,9 @@ Command::~Command() {
 
 BuiltInCommand::BuiltInCommand(const char *cmd_line) : Command(cmd_line) {}
 
-ExternalCommand::ExternalCommand(const char* cmd_line) : Command(cmd_line) {}
+ExternalCommand::ExternalCommand(const char* cmd_line) : Command(cmd_line) {
+    isBg = _isBackgroundComamnd(cmd_line);
+}
 
 SimpleExternalCommand::SimpleExternalCommand(const char* cmd_line) : ExternalCommand(cmd_line) {}
 
@@ -254,7 +256,7 @@ void ComplexExternalCommand::execParams() {
 
 
 void SimpleExternalCommand::execParams() {
-    DO_SYS(execvp(argv[0], &argv[1]));
+    DO_SYS(execvp(argv[0], argv)); ///was &argv[1]
 }
 
 
