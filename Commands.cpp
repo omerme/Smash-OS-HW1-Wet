@@ -13,7 +13,7 @@ const std::string WHITESPACE = " \n\r\t\f\v";
 /// omer 29/04 - debug
 //const std::vector<string> builtInCommands = {"chprompt", "showpid", "pwd", "cd", "jobs", "fg", "bg", "quit", "kill"};
 const int MAX_PARAMS = 20;
-const int MAX_LINE_WORDS = MAX_PARAMS + 2;
+const int MAX_LINE_WORDS = MAX_PARAMS + 3; /// plus command-word, &, and nullptr
 //0       1   2       20    21  --> len = 22 total
 //sleep arg1 arg2 .. arg20  &
 
