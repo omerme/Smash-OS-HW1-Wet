@@ -133,7 +133,9 @@ Command * SmallShell::CreateCommand(char* cmd_line) {
 	/// add more?
 	string cmd_s = _trim(string(cmd_line));
     string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
-
+    bool isbg = _isBackgroundComamnd(cmd_line);
+    string orig_cmd = cmd_line;
+    _removeBackgroundSign(cmd_line);
     if (firstWord.compare("chprompt") == 0) {
         return new ChangePoromptCommand(cmd_line);
     }
@@ -155,8 +157,8 @@ Command * SmallShell::CreateCommand(char* cmd_line) {
     else { //external
 
         if (strchr(cmd_line, '*') || strchr(cmd_line, '?'))
-            return new ComplexExternalCommand(cmd_line);
-        return new SimpleExternalCommand(cmd_line);
+            return new ComplexExternalCommand(cmd_line, isbg);
+        return new SimpleExternalCommand(cmd_line, isbg);
     }
     return nullptr;
 }
@@ -206,11 +208,11 @@ Command::~Command() {
 
 BuiltInCommand::BuiltInCommand(const char *cmd_line) : Command(cmd_line) {}
 
-ExternalCommand::ExternalCommand(const char* cmd_line) : Command(cmd_line) {
-    isBg = _isBackgroundComamnd(cmd_line);
+
+ExternalCommand::ExternalCommand(const char* cmd_line, bool isBg) : Command(cmd_line), isBg(isBg){
 }
 
-SimpleExternalCommand::SimpleExternalCommand(const char* cmd_line) : ExternalCommand(cmd_line) {}
+SimpleExternalCommand::SimpleExternalCommand(const char* cmd_line, bool isBg) : ExternalCommand(cmd_line, isBg) {}
 
 void ExternalCommand::execute()
 {
@@ -233,7 +235,7 @@ void ExternalCommand::execute()
 }
 
 
-ComplexExternalCommand::ComplexExternalCommand(const char* cmd_line) : ExternalCommand(cmd_line) {
+ComplexExternalCommand::ComplexExternalCommand(const char* cmd_line, bool isBg) : ExternalCommand(cmd_line, isBg) {
     for(int i =0; i<argc; i++){
         free(argv[i]);
     }

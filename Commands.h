@@ -156,10 +156,10 @@ class JobsList {
     void printJobsList();
     void killAllJobs();
     void removeFinishedJobs();
-    JobEntry * getJobById(int jobId);
+    Job * getJobById(int jobId);
     void removeJobById(int jobId);
-    JobEntry * getLastJob(int* lastJobId);
-    JobEntry *getLastStoppedJob(int *jobId);
+    Job * getLastJob(int* lastJobId);
+    Job *getLastStoppedJob(int *jobId);
     // TODO: Add extra methods or modify exisitng ones as needed
 };
 
