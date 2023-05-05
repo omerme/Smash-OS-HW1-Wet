@@ -7,6 +7,23 @@
 #define COMMAND_MAX_ARGS (20)
 //#define MAX_PARAMS 20
 
+/** job TODO:
+ * Job:
+ *      * c'tor
+ *      * d'tor
+ * JobsList:
+ *      * create vector size of 101 (0->null ptr, min_idx=1, max_idx=100)
+ *          - inn  the beginning - all nullptr, max_id = 0
+ *          - max_id = 0 <==> JobsList isEmpty
+ *          - job_not_exist <==> vec[idx] = nullptr;
+ *          - when deleting a job - *) go from end backwards
+ *                                  1) first free command and job
+ *                                  2) then change vec[idx] to nullptr
+ *                                  3) if job_id==max_id: update max_id
+ *                                  4) keep going backwards
+ *      * all methods
+ * **/
+
 class Command {
 protected:
     char** argv;
@@ -30,7 +47,7 @@ class ExternalCommand : public Command {
 protected:
     bool isBg; ///may need to update to job bg or fg
 public:
-    explicit ExternalCommand(const char* cmd_line);
+    explicit ExternalCommand(const char* cmd_line, bool isBg);
     virtual ~ExternalCommand() {}
     void execute() override; /// keep it?
     virtual void execParams() = 0;
@@ -39,7 +56,7 @@ public:
 
 class SimpleExternalCommand : public ExternalCommand {
 public:
-    explicit SimpleExternalCommand(const char* cmd_line);
+    explicit SimpleExternalCommand(const char* cmd_line, bool isBg);
     virtual ~SimpleExternalCommand() {}
     void execParams() override;
 
@@ -48,7 +65,7 @@ public:
 
 class ComplexExternalCommand : public ExternalCommand {
 public:
-    explicit ComplexExternalCommand(const char* cmd_line);
+    explicit ComplexExternalCommand(const char* cmd_line, bool isBg);
     virtual ~ComplexExternalCommand() {}
     void execParams() override;
     // do we need child list?
@@ -114,12 +131,23 @@ public:
     void execute() override;
 };
 
+class Job {
+private:
+    Command* command;
+    int job_id;
+    std::string orig_cmd_line;
+    bool is_stopped;
+    //bool is_finished;
+    int time_added;
+    pid_t process_pid;
+public:
+    Job(const char* cmd_line, int job_id);
+    ~Job();
+};
+
 
 class JobsList {
- public:
-    class JobEntry {
-    // TODO: Add your data members
-  };
+    int max_id;
     // TODO: Add your data members
  public:
     JobsList();

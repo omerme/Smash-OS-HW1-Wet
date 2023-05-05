@@ -12,7 +12,9 @@ using namespace std;
 
 #define DO_SYS( syscall ) do { \
             if( (syscall) == -1) { \
-                perror ( "smash error: #syscall failed" ); \
+                string syscallStr = (string)#syscall;                \
+                string s = "smash error: " + syscallStr.substr(0, syscallStr.find('(')) + " failed";            \
+                perror ( s.c_str() ); \
                 exit(1);               \
             }                      \
         } while(0)
@@ -133,29 +135,25 @@ Command * SmallShell::CreateCommand(char* cmd_line) {
     string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
 
     if (firstWord.compare("chprompt") == 0) {
-        _removeBackgroundSign(cmd_line);
         return new ChangePoromptCommand(cmd_line);
     }
     else if (firstWord.compare("showpid") == 0) {
-        _removeBackgroundSign(cmd_line);
         return new ShowPidCommand(cmd_line);
     }
     else if (firstWord.compare("pwd") == 0) {
-        _removeBackgroundSign(cmd_line);
         return new GetCurrDirCommand(cmd_line);
     }
     else if (firstWord.compare("cd") == 0) {
-        _removeBackgroundSign(cmd_line);
         return new ChangeDirCommand(cmd_line, nullptr);
     }
     else if (firstWord.compare("quit") == 0) {
-        _removeBackgroundSign(cmd_line);
         return new QuitCommand(cmd_line, nullptr); /// for jobs: change nullptr to joblist
     }
     else if (firstWord.compare("") == 0) {
         cout << "oops! empty line!";
     }
     else { //external
+
         if (strchr(cmd_line, '*') || strchr(cmd_line, '?'))
             return new ComplexExternalCommand(cmd_line);
         return new SimpleExternalCommand(cmd_line);
@@ -256,11 +254,9 @@ void ComplexExternalCommand::execParams() {
     DO_SYS(execvp("/bin/bash", argv));
 }
 
-
 void SimpleExternalCommand::execParams() {
     DO_SYS(execvp(argv[0], argv)); ///was &argv[1]
 }
-
 
 ChangePoromptCommand::ChangePoromptCommand(const char *cmd_line): BuiltInCommand(cmd_line){
     if (argc >= 2)
@@ -331,4 +327,9 @@ QuitCommand::QuitCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(
 void QuitCommand::execute() {
     exit(0);
 }
+
+Job(const char* cmd_line, int job_id) {
+
+}
+~Job();
 
