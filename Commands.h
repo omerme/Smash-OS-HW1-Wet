@@ -46,8 +46,10 @@ class BuiltInCommand : public Command {
 class ExternalCommand : public Command {
 protected:
     bool isBg; ///may need to update to job bg or fg
+    std::string orig_cmd;
+    pid_t process_pid;
 public:
-    explicit ExternalCommand(const char* cmd_line, bool isBg);
+    explicit ExternalCommand(const char* cmd_line, bool isBg, std::string orig_cmd);
     virtual ~ExternalCommand() {}
     void execute() override; /// keep it?
     virtual void execParams() = 0;
@@ -59,7 +61,7 @@ public:
 
 class SimpleExternalCommand : public ExternalCommand {
 public:
-    explicit SimpleExternalCommand(const char* cmd_line, bool isBg);
+    explicit SimpleExternalCommand(const char* cmd_line, bool isBg, std::string orig_cmd);
     virtual ~SimpleExternalCommand() {}
     void execParams() override;
 
@@ -68,7 +70,7 @@ public:
 
 class ComplexExternalCommand : public ExternalCommand {
 public:
-    explicit ComplexExternalCommand(const char* cmd_line, bool isBg);
+    explicit ComplexExternalCommand(const char* cmd_line, bool isBg, std::string orig_cmd);
     virtual ~ComplexExternalCommand() {}
     void execParams() override;
     // do we need child list?
@@ -155,18 +157,19 @@ public:
 
 class JobsList {
     int max_id;
+    std::vector<Job*> jobs;
     // TODO: Add your data members
  public:
     JobsList();
-    ~JobsList();
-    void addJob(Command* cmd, bool isStopped = false);
+    ~JobsList() = default;
+    void addJob(Job* newJob);
     void printJobsList();
     void killAllJobs();
     void removeFinishedJobs();
     Job * getJobById(int jobId);
     void removeJobById(int jobId);
     Job * getLastJob(int* lastJobId);
-    Job *getLastStoppedJob(int *jobId);
+    Job *getLastStoppedJob();
     // TODO: Add extra methods or modify exisitng ones as needed
 };
 
@@ -243,7 +246,6 @@ public:
     std::string prompt; //for chprompt
     std::string curWD;
     std::string prevWD;
-    /// add job list
     /// add fg job
     SmallShell();
  public:

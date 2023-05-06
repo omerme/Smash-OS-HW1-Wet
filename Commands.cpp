@@ -157,8 +157,8 @@ Command * SmallShell::CreateCommand(char* cmd_line) {
     }
     else { //external
         if (strchr(cmd_line, '*') || strchr(cmd_line, '?'))
-            return new ComplexExternalCommand(cmd_line, isbg);
-        return new SimpleExternalCommand(cmd_line, isbg);
+            return new ComplexExternalCommand(cmd_line, isbg, orig_cmd);
+        return new SimpleExternalCommand(cmd_line, isbg, orig_cmd);
     }
     return nullptr;
 }
@@ -315,26 +315,39 @@ Command::~Command() {
     free(argv);
 }
 
+std::string ExternalCommand::getCmd() const{
+    return orig_cmd;
+}
+
 
 BuiltInCommand::BuiltInCommand(const char *cmd_line) : Command(cmd_line) {}
 
 
-ExternalCommand::ExternalCommand(const char* cmd_line, bool isBg) : Command(cmd_line), isBg(isBg){
+ExternalCommand::ExternalCommand(const char* cmd_line, bool isBg, std::string orig_cmd) : Command(cmd_line), isBg(isBg), orig_cmd(orig_cmd){}
+
+pid_t ExternalCommand::getPid() {
+    return process_pid;
 }
 
-SimpleExternalCommand::SimpleExternalCommand(const char* cmd_line, bool isBg) : ExternalCommand(cmd_line, isBg) {}
+void ExternalCommand::setPid(pid_t pid) {
+    process_pid = pid;
+}
+
+SimpleExternalCommand::SimpleExternalCommand(const char* cmd_line, bool isBg, std::string orig_cmd) : ExternalCommand(cmd_line, isBg, orig_cmd) {}
 
 void ExternalCommand::execute()
 {
     pid_t pid = fork(); // fork failed
     if (pid < 0) {
         perror("smash error: fork failed");
-    } else if (pid == 0) { //child:
+    }
+    else if (pid == 0) { //child:
         setpgrp();
         //execvp(argv[0], &argv[1]);
         execParams();
         perror("smash error: execvp failed");
-    } else { //parent:
+    }
+    else { //parent:
         if (isBg) { // background - what?
             DO_SYS(waitpid(pid, nullptr, WNOHANG)); ///is this bg ok?
 //            SmallShell::getInstance().
@@ -346,7 +359,7 @@ void ExternalCommand::execute()
 }
 
 
-ComplexExternalCommand::ComplexExternalCommand(const char* cmd_line, bool isBg) : ExternalCommand(cmd_line, isBg) {
+ComplexExternalCommand::ComplexExternalCommand(const char* cmd_line, bool isBg, std::string orig_cmd) : ExternalCommand(cmd_line, isBg, orig_cmd) {
     for(int i =0; i<argc; i++){
         free(argv[i]);
     }
