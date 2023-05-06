@@ -26,7 +26,8 @@ const int MAX_PARAMS = 20;
 const int MAX_LINE_WORDS = MAX_PARAMS + 3; /// plus command-word, &, and nullptr
 //0       1   2       20    21  --> len = 22 total
 //sleep arg1 arg2 .. arg20  &
-
+const int JOBS_MAX_IDX = 100;
+const int JOBS_MIN_IDX = 1;
 /** when adding a command:
  * 1. implement c'tor, d'tor and execute
  * 2. add command name to SmallShell::CreateCommand
@@ -155,10 +156,119 @@ Command * SmallShell::CreateCommand(char* cmd_line) {
         cout << "oops! empty line!";
     }
     else { //external
-
         if (strchr(cmd_line, '*') || strchr(cmd_line, '?'))
             return new ComplexExternalCommand(cmd_line, isbg);
         return new SimpleExternalCommand(cmd_line, isbg);
+    }
+    return nullptr;
+}
+
+
+//Job::Job(const char* cmd_line, bool isBg, const char* orig_cmd_line, int job_id) :
+//command(nullptr), job_id(job_id), orig_cmd_line(orig_cmd_line), is_stopped(false) {
+//    command = (strchr(orig_cmd_line, '*') || strchr(orig_cmd_line, '?')) ?
+//            new ComplexExternalCommand(cmd_line, isBg) : command = new SimpleExternalCommand(cmd_line, isBg);
+//    time_added =
+//}
+
+Job::Job(ExternalCommand* command, int job_id, bool is_stopped) : command(command), job_id(job_id), is_stopped(is_stopped)
+{
+    time_added = time(nullptr);
+}
+
+int Job::getId() {
+    return job_id;
+}
+
+void Job::setId(int j_id) {
+    job_id = j_id;
+}
+
+void Job::printJob() {
+    cout << "[" << job_id << "]" << command->getCmd() << ":" << command->getPid() << difftime(time_added, time(nullptr));
+    if (is_stopped)
+        cout << "(stopped)" <<endl;
+    else
+        cout << endl;
+}
+
+JobsList::JobsList() : jobs(101, nullptr), max_id(0){}
+
+void JobsList::addJob(Job* newJob){
+    removeFinishedJobs();
+    if (max_id >= 100)
+        cerr << "too many jobs in list" << endl;
+    jobs[max_id + 1] = newJob;
+    newJob->setId(max_id + 1);
+    max_id++;
+}
+
+void JobsList::printJobsList() {
+    removeFinishedJobs();
+    for (std::vector<Job*>::iterator  job = jobs.begin(); job != jobs.end() ; ++job){
+        (*job)->printJob();
+    }
+}
+
+
+
+void JobsList::killAllJobs(){} ///implement after signal handling
+
+void JobsList::removeFinishedJobs() {
+    bool setMaxFlag = false;
+    for (int idx = JOBS_MAX_IDX; idx >= JOBS_MIN_IDX; idx--) {
+        if(jobs[idx] == nullptr)
+            continue;
+        else {
+            int status;
+            DO_SYS(waitpid(jobs[idx]->command->getPid(), &status, WNOHANG));
+            if (status==0) { // chiled not finished
+                if(setMaxFlag) {//if max_id needs to be re_set
+                    max_id = idx;
+                    setMaxFlag = false;
+                }
+                continue;
+            }
+            else { // chiled finished
+                if (idx==max_id) {
+                    setMaxFlag = true;
+                    max_id = 0; /// after the loop - if (max_id==0) - joblist is empty
+                }
+                delete jobs[idx]->command;
+                delete jobs[idx];
+                jobs[idx] = nullptr;
+            }
+        }
+    }
+}
+
+Job * JobsList::getJobById(int jobId){
+    return jobs[jobId];
+}
+
+void JobsList::removeJobById(int jobId) {
+    delete jobs[jobId]->command;          //make sure we want to delete command
+    delete jobs[jobId];
+    jobs[jobId] = nullptr;
+    if (max_id == jobId) {                      //update max id
+        for (int idx = jobId; idx >= JOBS_MIN_IDX ; idx--){
+            if (jobs[idx] != nullptr) {
+                max_id = idx;
+                break;
+            }
+            max_id =0;                          //will be 0 only if all jobs are null
+        }
+    }
+}
+
+//Job * JobsList::getLastJob(int* lastJobId){
+//    return jobs[max_id];
+//}
+
+Job * JobsList::getLastStoppedJob() {
+    for (int idx = max_id; idx >= JOBS_MIN_IDX ; idx--) {
+        if (jobs[idx] != nullptr && jobs[idx]->is_stopped)
+            return jobs[idx];
     }
     return nullptr;
 }
@@ -227,6 +337,7 @@ void ExternalCommand::execute()
     } else { //parent:
         if (isBg) { // background - what?
             DO_SYS(waitpid(pid, nullptr, WNOHANG)); ///is this bg ok?
+//            SmallShell::getInstance().
         }
         else { // foreground
             DO_SYS(waitpid(pid, nullptr, 0)); /// wstatus?
@@ -330,8 +441,5 @@ void QuitCommand::execute() {
     exit(0);
 }
 
-Job(const char* cmd_line, int job_id) {
 
-}
-~Job();
 

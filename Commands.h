@@ -51,6 +51,9 @@ public:
     virtual ~ExternalCommand() {}
     void execute() override; /// keep it?
     virtual void execParams() = 0;
+    pid_t getPid();
+    void setPid(pid_t pid) ;
+    std::string getCmd() const;
     // do we need child list?
 };
 
@@ -133,16 +136,20 @@ public:
 
 class Job {
 private:
-    Command* command;
+    friend JobsList;
+    ExternalCommand* command;
     int job_id;
-    std::string orig_cmd_line;
+    //std::string orig_cmd_line;
     bool is_stopped;
     //bool is_finished;
-    int time_added;
-    pid_t process_pid;
+    time_t time_added;
+    //pid_t process_pid;
 public:
-    Job(const char* cmd_line, int job_id);
-    ~Job();
+    Job(ExternalCommand* command, int job_id, bool is_stopped);
+    ~Job() = default;
+    int getId();
+    void setId(int job_id);
+    void printJob();
 };
 
 
@@ -229,6 +236,8 @@ class KillCommand : public BuiltInCommand {
 };
 
 class SmallShell {
+public:
+    JobsList jobs;
  private:
     // TODO: Add your data members
     std::string prompt; //for chprompt
@@ -236,7 +245,6 @@ class SmallShell {
     std::string prevWD;
     /// add job list
     /// add fg job
-
     SmallShell();
  public:
     Command *CreateCommand(char* cmd_line);
