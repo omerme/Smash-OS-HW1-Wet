@@ -150,7 +150,7 @@ private:
     time_t time_added;
     //pid_t process_pid;
 public:
-    Job(ExternalCommand* command, int job_id, bool is_stopped);
+    Job(ExternalCommand* command, int job_id =0, bool is_stopped = false);
     ~Job() = default;
     int getId();
     void setId(int job_id);

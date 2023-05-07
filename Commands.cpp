@@ -103,7 +103,7 @@ void _removeBackgroundSign(char* cmd_line) {
 
 // TODO: Add your implementation for classes in Commands.h 
 
-SmallShell::SmallShell() : prompt("smash"), prevWD()
+SmallShell::SmallShell() : jobs(), prompt("smash"), prevWD()
 {
     /// omer 26.4
     curWD = getcwd(nullptr,0);
@@ -205,7 +205,7 @@ void JobsList::addJob(Job* newJob){
     newJob->setId(max_id + 1);
     max_id++;
 }
-
+/*
 void JobsList::printJobsList() {
     removeFinishedJobs();
     for (std::vector<Job*>::iterator  job = jobs.begin(); job != jobs.end() ; ++job) {
@@ -216,6 +216,17 @@ void JobsList::printJobsList() {
     }
 }
 */
+
+void JobsList::printJobsList() {
+    removeFinishedJobs();
+    for (int i =1; i<=max_id ; ++i) {
+        if (jobs[i] != nullptr) {
+            printf("got here!!");
+            (jobs[i])->printJob();
+        }
+    }
+}
+
 
 
 void JobsList::killAllJobs(){} ///implement after signal handling
@@ -364,6 +375,7 @@ void ExternalCommand::execute()
         perror("smash error: execvp failed");
     }
     else { //parent:
+        setPid(pid);
         if (isBg) { // background - what?
             DO_SYS(waitpid(pid, nullptr, WNOHANG)); ///is this bg ok?
             SmallShell::getInstance().jobs.addJob(new Job(this));
