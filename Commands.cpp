@@ -195,7 +195,7 @@ void Job::printJob() {
         cout << endl;
 }
 
-JobsList::JobsList() : jobs(101, nullptr), max_id(0){}
+JobsList::JobsList() : max_id(0), jobs(101, nullptr){}
 
 void JobsList::addJob(Job* newJob){
     removeFinishedJobs();
