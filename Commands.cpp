@@ -152,6 +152,9 @@ Command * SmallShell::CreateCommand(char* cmd_line) {
     else if (firstWord.compare("quit") == 0) {
         return new QuitCommand(cmd_line, nullptr); /// for jobs: change nullptr to joblist
     }
+    else if (firstWord.compare("jobs")){
+        return new JobsCommand(cmd_line, &jobs);
+    }
     else if (firstWord.compare("") == 0) {
         cout << "oops! empty line!";
     }

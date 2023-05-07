@@ -241,14 +241,14 @@ class KillCommand : public BuiltInCommand {
 class SmallShell {
 public:
     JobsList jobs;
- private:
+private:
     // TODO: Add your data members
     std::string prompt; //for chprompt
     std::string curWD;
     std::string prevWD;
     /// add fg job
     SmallShell();
- public:
+public:
     Command *CreateCommand(char* cmd_line);
     SmallShell(SmallShell const&)      = delete; // disable copy ctor
     void operator=(SmallShell const&)  = delete; // disable = operator
