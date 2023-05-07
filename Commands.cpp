@@ -152,7 +152,7 @@ Command * SmallShell::CreateCommand(char* cmd_line) {
     else if (firstWord.compare("quit") == 0) {
         return new QuitCommand(cmd_line, nullptr); /// for jobs: change nullptr to joblist
     }
-    else if (firstWord.compare("jobs")){
+    else if (firstWord.compare("jobs") == 0) {
         return new JobsCommand(cmd_line, &jobs);
     }
     else if (firstWord.compare("") == 0) {
@@ -208,11 +208,14 @@ void JobsList::addJob(Job* newJob){
 
 void JobsList::printJobsList() {
     removeFinishedJobs();
-    for (std::vector<Job*>::iterator  job = jobs.begin(); job != jobs.end() ; ++job){
-        (*job)->printJob();
+    for (std::vector<Job*>::iterator  job = jobs.begin(); job != jobs.end() ; ++job) {
+        if ((*job) != nullptr) {
+            printf("got here!!");
+            (*job)->printJob();
+        }
     }
 }
-
+*/
 
 
 void JobsList::killAllJobs(){} ///implement after signal handling
@@ -223,16 +226,18 @@ void JobsList::removeFinishedJobs() {
         if(jobs[idx] == nullptr)
             continue;
         else {
-            int status;
-            DO_SYS(waitpid(jobs[idx]->command->getPid(), &status, WNOHANG));
-            if (status==0) { // chiled not finished
+            pid_t wait_ret = waitpid(jobs[idx]->command->getPid(), nullptr, WNOHANG); //status?
+            if (wait_ret < 0) {
+                perror("smash error: waitpid failed");
+            }
+            else if (wait_ret==0) { // child not finished
                 if(setMaxFlag) {//if max_id needs to be re_set
                     max_id = idx;
                     setMaxFlag = false;
                 }
                 continue;
             }
-            else { // chiled finished
+            else { // child finished
                 if (idx==max_id) {
                     setMaxFlag = true;
                     max_id = 0; /// after the loop - if (max_id==0) - joblist is empty
@@ -285,7 +290,7 @@ void SmallShell::executeCommand(const char *cmd_line_in)
     ///if built-in:
     Command* cmd = CreateCommand(cmd_line);
     cmd->execute();
-    if(true) { /// if built-in
+    if(!cmd->getBg()) { /// if not in back-ground
         delete cmd;
     }
     delete[] cmd_line;
@@ -326,8 +331,15 @@ std::string ExternalCommand::getCmd() const{
 
 BuiltInCommand::BuiltInCommand(const char *cmd_line) : Command(cmd_line) {}
 
+bool BuiltInCommand::getBg() {
+    return false;
+}
 
-ExternalCommand::ExternalCommand(const char* cmd_line, bool isBg, std::string orig_cmd) : Command(cmd_line), isBg(isBg), orig_cmd(orig_cmd){}
+ExternalCommand::ExternalCommand(const char* cmd_line, bool isBg, std::string orig_cmd) : Command(cmd_line), isBg(isBg), orig_cmd(orig_cmd), process_pid(0) {}
+
+bool ExternalCommand::getBg() {
+    return isBg;
+}
 
 pid_t ExternalCommand::getPid() {
     return process_pid;
@@ -354,7 +366,7 @@ void ExternalCommand::execute()
     else { //parent:
         if (isBg) { // background - what?
             DO_SYS(waitpid(pid, nullptr, WNOHANG)); ///is this bg ok?
-//            SmallShell::getInstance().
+            SmallShell::getInstance().jobs.addJob(new Job(this));
         }
         else { // foreground
             DO_SYS(waitpid(pid, nullptr, 0)); /// wstatus?
@@ -449,15 +461,15 @@ void ChangeDirCommand::execute() {
     SmallShell::getInstance().setCurWD(getcwd(nullptr,0)); //update curr dir
 }
 
-JobsCommand::JobsCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(cmd_line), jobs(jobs) {}
+JobsCommand::JobsCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(cmd_line), jobs_ptr(jobs) {}
 
 void JobsCommand::execute() {
-    jobs->printJobsList();
+    jobs_ptr->printJobsList();
 }
 
 
-QuitCommand::QuitCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(cmd_line) {
-    jobs = nullptr; /// omer 29/04 - debug - just for now..
+QuitCommand::QuitCommand(const char* cmd_line, JobsList* jobs_ptr) : BuiltInCommand(cmd_line) {
+    jobs_ptr = nullptr; /// omer 29/04 - debug - just for now..
 }
 
 void QuitCommand::execute() {

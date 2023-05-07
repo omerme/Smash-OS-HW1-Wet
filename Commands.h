@@ -32,6 +32,7 @@ protected:
     explicit Command(const char* cmd_line);
     virtual ~Command();
     virtual void execute() = 0;
+    virtual bool getBg() = 0;
     //virtual void prepare();
     //virtual void cleanup();
     // TODO: Add your extra methods if needed
@@ -40,6 +41,7 @@ protected:
 class BuiltInCommand : public Command {
  public:
     explicit BuiltInCommand(const char* cmd_line);
+    bool getBg() override;
     virtual ~BuiltInCommand() {}
 };
 
@@ -53,6 +55,7 @@ public:
     virtual ~ExternalCommand() {}
     void execute() override; /// keep it?
     virtual void execParams() = 0;
+    bool getBg() override;
     pid_t getPid();
     void setPid(pid_t pid) ;
     std::string getCmd() const;
@@ -174,7 +177,7 @@ class JobsList {
 };
 
 class JobsCommand : public BuiltInCommand {
-    JobsList* jobs;
+    JobsList* jobs_ptr;
  public:
     JobsCommand(const char* cmd_line, JobsList* jobs);
     virtual ~JobsCommand() {}
