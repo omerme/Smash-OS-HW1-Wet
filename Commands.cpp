@@ -265,7 +265,8 @@ void JobsList::removeJobById(int jobId) {
 //    return jobs[max_id];
 //}
 
-Job * JobsList::getLastStoppedJob() {
+Job * JobsList::getLastStoppedJob()
+{
     for (int idx = max_id; idx >= JOBS_MIN_IDX ; idx--) {
         if (jobs[idx] != nullptr && jobs[idx]->is_stopped)
             return jobs[idx];
@@ -443,6 +444,12 @@ void ChangeDirCommand::execute() {
     }*/
     SmallShell::getInstance().setPrevWD(SmallShell::getInstance().getCurWD()); //update prev dir to old curr dir
     SmallShell::getInstance().setCurWD(getcwd(nullptr,0)); //update curr dir
+}
+
+JobsCommand::JobsCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(cmd_line), jobs(jobs) {}
+
+void JobsCommand::execute() {
+    jobs->printJobsList();
 }
 
 

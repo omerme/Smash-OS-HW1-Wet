@@ -168,13 +168,13 @@ class JobsList {
     void removeFinishedJobs();
     Job * getJobById(int jobId);
     void removeJobById(int jobId);
-    Job * getLastJob(int* lastJobId);
+    //Job * getLastJob(int* lastJobId);
     Job *getLastStoppedJob();
     // TODO: Add extra methods or modify exisitng ones as needed
 };
 
 class JobsCommand : public BuiltInCommand {
-    // TODO: Add your data members
+    JobsList* jobs;
  public:
     JobsCommand(const char* cmd_line, JobsList* jobs);
     virtual ~JobsCommand() {}
