@@ -188,7 +188,8 @@ void Job::setId(int j_id) {
 }
 
 void Job::printJob() {
-    cout << "[" << job_id << "]" << command->getCmd() << ":" << command->getPid() << difftime(time_added, time(nullptr));
+    cout << "[" << job_id << "]" << command->getCmd() << " : " << command->getPid() << " " <<
+    difftime(time_added, time(nullptr)) << "secs";
     if (is_stopped)
         cout << "(stopped)" <<endl;
     else
@@ -221,7 +222,7 @@ void JobsList::printJobsList() {
     removeFinishedJobs();
     for (int i =1; i<=max_id ; ++i) {
         if (jobs[i] != nullptr) {
-            printf("got here!!");
+            //printf("got here!!");
             (jobs[i])->printJob();
         }
     }
