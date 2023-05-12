@@ -187,6 +187,13 @@ void Job::setId(int j_id) {
     job_id = j_id;
 }
 
+bool Job::getIsStopped() const {
+    return is_stopped;
+}
+void Job::setIsStopped(bool isStopped) {
+    is_stopped = isStopped;
+}
+
 void Job::printJob() {
     cout << "[" << job_id << "]" << command->getCmd() << " : " << command->getPid() << " " <<
     difftime(time_added, time(nullptr)) << "secs";
@@ -285,6 +292,11 @@ void JobsList::removeJobById(int jobId) {
 //    return jobs[max_id];
 //}
 
+int JobsList::getMaxId() const {
+    return max_id;
+}
+
+
 Job * JobsList::getLastStoppedJob()
 {
     for (int idx = max_id; idx >= JOBS_MIN_IDX ; idx--) {
@@ -353,6 +365,10 @@ bool ExternalCommand::getBg() {
     return isBg;
 }
 
+void ExternalCommand::setBg(bool Bg) {
+    isBg = Bg;
+}
+
 pid_t ExternalCommand::getPid() {
     return process_pid;
 }
@@ -360,6 +376,15 @@ pid_t ExternalCommand::getPid() {
 void ExternalCommand::setPid(pid_t pid) {
     process_pid = pid;
 }
+
+void ExternalCommand::setJobId(int id) {
+    job_id = id;
+}
+
+int ExternalCommand::getJobId() const {
+    return job_id;
+}
+
 
 SimpleExternalCommand::SimpleExternalCommand(const char* cmd_line, bool isBg, std::string orig_cmd) : ExternalCommand(cmd_line, isBg, orig_cmd) {}
 
@@ -377,7 +402,7 @@ void ExternalCommand::execute()
     }
     else { //parent:
         setPid(pid);
-        if (isBg) { // background - what?
+        if (isBg) { // background
             DO_SYS(waitpid(pid, nullptr, WNOHANG)); ///is this bg ok?
             SmallShell::getInstance().jobs.addJob(new Job(this));
         }

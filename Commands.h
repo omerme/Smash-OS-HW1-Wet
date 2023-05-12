@@ -47,6 +47,7 @@ class BuiltInCommand : public Command {
 
 class ExternalCommand : public Command {
 protected:
+    int job_id; /// -1 if new in fg, when inserted to list - change it to idx in joblist.
     bool isBg; ///may need to update to job bg or fg
     std::string orig_cmd;
     pid_t process_pid;
@@ -56,9 +57,13 @@ public:
     void execute() override; /// keep it?
     virtual void execParams() = 0;
     bool getBg() override;
+    void setBg(bool Bg) ;
     pid_t getPid();
     void setPid(pid_t pid) ;
     std::string getCmd() const;
+    void setJobId(int id);
+    int getJobId() const;
+
     // do we need child list?
 };
 
@@ -154,7 +159,11 @@ public:
     ~Job() = default;
     int getId();
     void setId(int job_id);
+    bool getIsStopped() const;
+    void setIsStopped(bool isStopped);
     void printJob();
+
+
 };
 
 
@@ -172,6 +181,7 @@ class JobsList {
     Job * getJobById(int jobId);
     void removeJobById(int jobId);
     //Job * getLastJob(int* lastJobId);
+    int getMaxId() const;
     Job *getLastStoppedJob();
     // TODO: Add extra methods or modify exisitng ones as needed
 };
