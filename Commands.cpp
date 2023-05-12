@@ -414,6 +414,11 @@ void ExternalCommand::execute()
                 cout << "smash: process" << pid << "was killed" << endl;
                 SmallShell::getInstance().sigC = false;
             }
+            if(SmallShell::getInstance().sigZ) {  /// "if" or "else if" here?
+                cout << "smash: got ctrl-Z" <<endl;
+                cout << "smash: process" << pid << "was stopped" << endl;
+                SmallShell::getInstance().sigZ = false;
+            }
         }
     }
 }

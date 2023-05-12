@@ -5,16 +5,21 @@
 
 using namespace std;
 
+
+///how to print "smash: got ctrl-Z" ?
+/**
+ *  I think if smash is running we're OK with using cout from handler (because no other process has access to cout)..
+ *  and if external if fg we use the flags
+ *  changed it in ctrlZHandler
+ *  **/
 void ctrlZHandler(int sig_num) {
-	// TODO: Add your implementation
-    ///how to print "smash: got ctrl-Z" ?
-    SmallShell::getInstance().sigZ = true;
     ExternalCommand* cmd = SmallShell::getInstance().getCurrCommand();
     if (cmd == nullptr) {
+        cout << "smash: got ctrl-Z" << endl;
         return;
     }
     else { // external in fg
-        kill(cmd->getPid(), sig_num); ///when do we do this? does it matter?
+        SmallShell::getInstance().sigZ = true; /// for printing flag after return?
         if(cmd->getJobId()==-1) { // if new in JobList
             SmallShell::getInstance().jobs.addJob(new Job(cmd));
             // addJob sets command->job_id.
@@ -23,6 +28,8 @@ void ctrlZHandler(int sig_num) {
         cmd->setBg(true);
         // below - set job in list to "stopped"
         SmallShell::getInstance().jobs.getJobById(cmd->getJobId())->setIsStopped(true);
+        kill(cmd->getPid(), sig_num); ///when do we do this? does it matter?
+        /// how to print: "smash: process <foreground-PID> was stopped"? (only if a job was stopped)
     }
 }
 
