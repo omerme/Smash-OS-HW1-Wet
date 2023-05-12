@@ -259,9 +259,12 @@ private:
     std::string prompt; //for chprompt
     std::string curWD;
     std::string prevWD;
-    /// add fg job
+    ExternalCommand* curr_command;
     SmallShell();
 public:
+    bool sigC;
+    bool sigZ;
+    bool sigAlarm;
     Command *CreateCommand(char* cmd_line);
     SmallShell(SmallShell const&)      = delete; // disable copy ctor
     void operator=(SmallShell const&)  = delete; // disable = operator
@@ -282,6 +285,7 @@ public:
     void setPrevWD(std::string newPrevWD);
     std::string getPrompt() const; //for chprompt
     void setPrompt(std::string newPrompt); //for chprompt
+    ExternalCommand* getCurrCommand();
 
 };
 

@@ -103,7 +103,8 @@ void _removeBackgroundSign(char* cmd_line) {
 
 // TODO: Add your implementation for classes in Commands.h 
 
-SmallShell::SmallShell() : jobs(), prompt("smash"), prevWD()
+SmallShell::SmallShell() : jobs(), prompt("smash"), prevWD(), curr_command(nullptr), sigZ(false),
+sigC(false), sigAlarm(false)
 {
     /// omer 26.4
     curWD = getcwd(nullptr,0);
@@ -126,6 +127,11 @@ void SmallShell::setPrevWD(std::string newPrevWD) {
 void SmallShell::setPrompt(std::string newPrompt) {
     prompt = newPrompt;
 }
+
+ExternalCommand* SmallShell::getCurrCommand(){
+    return curr_command;
+}
+
 
 /**
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
@@ -163,7 +169,7 @@ Command * SmallShell::CreateCommand(char* cmd_line) {
             return new ComplexExternalCommand(cmd_line, isbg, orig_cmd);
         return new SimpleExternalCommand(cmd_line, isbg, orig_cmd);
     }
-    return nullptr;
+    //return nullptr;
 }
 
 
@@ -211,19 +217,9 @@ void JobsList::addJob(Job* newJob){
         cerr << "too many jobs in list" << endl;
     jobs[max_id + 1] = newJob;
     newJob->setId(max_id + 1);
+    newJob->command->setJobId(max_id+1);
     max_id++;
 }
-/*
-void JobsList::printJobsList() {
-    removeFinishedJobs();
-    for (std::vector<Job*>::iterator  job = jobs.begin(); job != jobs.end() ; ++job) {
-        if ((*job) != nullptr) {
-            printf("got here!!");
-            (*job)->printJob();
-        }
-    }
-}
-*/
 
 void JobsList::printJobsList() {
     removeFinishedJobs();
@@ -313,10 +309,15 @@ void SmallShell::executeCommand(const char *cmd_line_in)
     strcpy(cmd_line, cmd_line_in);
     ///if built-in:
     Command* cmd = CreateCommand(cmd_line);
+    if(!(cmd->getBg()) && (dynamic_cast<const ExternalCommand*>(cmd) != nullptr)) { /// if external in fg
+        curr_command = dynamic_cast<ExternalCommand*>(cmd);
+    }
+    //     bool isWarrior =  dynamic_cast<const Warrior*>(curPlayer.get()) != nullptr;
     cmd->execute();
     if(!cmd->getBg()) { /// if not in back-ground
         delete cmd;
     }
+    curr_command= nullptr;
     delete[] cmd_line;
   // TODO: Add your implementation here
   // for example:
@@ -359,7 +360,7 @@ bool BuiltInCommand::getBg() {
     return false;
 }
 
-ExternalCommand::ExternalCommand(const char* cmd_line, bool isBg, std::string orig_cmd) : Command(cmd_line), isBg(isBg), orig_cmd(orig_cmd), process_pid(0) {}
+ExternalCommand::ExternalCommand(const char* cmd_line, bool isBg, std::string orig_cmd) : Command(cmd_line), job_id(-1), isBg(isBg), orig_cmd(orig_cmd), process_pid(0) {}
 
 bool ExternalCommand::getBg() {
     return isBg;
@@ -408,6 +409,11 @@ void ExternalCommand::execute()
         }
         else { // foreground
             DO_SYS(waitpid(pid, nullptr, 0)); /// wstatus?
+            if(SmallShell::getInstance().sigC){
+                cout << "smash: got ctrl-C" <<endl;
+                cout << "smash: process" << pid << "was killed" << endl;
+                SmallShell::getInstance().sigC = false;
+            }
         }
     }
 }
