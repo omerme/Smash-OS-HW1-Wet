@@ -286,7 +286,7 @@ public:
     std::string getPrompt() const; //for chprompt
     void setPrompt(std::string newPrompt); //for chprompt
     ExternalCommand* getCurrCommand();
-
+    void setCurrCommand(ExternalCommand* currCom);
 };
 
 #endif //SMASH_COMMAND_H_

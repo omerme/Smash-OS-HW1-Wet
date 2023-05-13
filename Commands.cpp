@@ -313,15 +313,15 @@ void SmallShell::executeCommand(const char *cmd_line_in)
     ///if built-in:
     Command* cmd = CreateCommand(cmd_line);
     if(cmd) { // if not empty line:
-        if(!(cmd->getBg()) && (dynamic_cast<const ExternalCommand*>(cmd) != nullptr)) { /// if external in fg
-            curr_command = dynamic_cast<ExternalCommand*>(cmd);
-        }
+        //if(!(cmd->getBg()) && (dynamic_cast<const ExternalCommand*>(cmd) != nullptr)) { /// if external in fg
+         //   curr_command = dynamic_cast<ExternalCommand*>(cmd);
+        //}
         //     bool isWarrior =  dynamic_cast<const Warrior*>(curPlayer.get()) != nullptr;
         cmd->execute();
         if(!cmd->getBg()) { /// if not in back-ground
             delete cmd;
         }
-        curr_command= nullptr;
+        //curr_command= nullptr;
         delete[] cmd_line;
     }
   // TODO: Add your implementation here
@@ -337,6 +337,10 @@ string SmallShell::getPrompt() const {
 
 void SmallShell::changePrompt(string new_prompt) {
     prompt = new_prompt;
+}
+
+void SmallShell::setCurrCommand(ExternalCommand* currCom){
+    curr_command = currCom;
 }
 
 Command::Command(const char *cmd_line) {
@@ -413,6 +417,7 @@ void ExternalCommand::execute()
             SmallShell::getInstance().jobs.addJob(new Job(this));
         }
         else { // foreground
+            SmallShell::getInstance().setCurrCommand(this);
             DO_SYS(waitpid(pid, nullptr, 0)); /// wstatus?
             if(SmallShell::getInstance().sigC){
                 cout << "smash: got ctrl-C" <<endl;
@@ -424,6 +429,7 @@ void ExternalCommand::execute()
                 cout << "smash: process" << pid << "was stopped" << endl;
                 SmallShell::getInstance().sigZ = false;
             }
+            SmallShell::getInstance().setCurrCommand(nullptr);
         }
     }
 }
