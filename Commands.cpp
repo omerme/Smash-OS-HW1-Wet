@@ -111,17 +111,18 @@ void postWaitPid(pid_t pid, int job_id, ExternalCommand* exCommand){
     }
     if(SmallShell::getInstance().sigZ) {  /// "if" or "else if" here?
         cout << "smash: got ctrl-Z" <<endl;
-        if(job_id==-1) { // if new in JobList
+        if(exCommand->getJobId()==-1) { // if new in JobList
             SmallShell::getInstance().jobs.addJob(new Job(exCommand));
             // addJob sets command->job_id.
             // set command->job_id manually: cmd->setJobId(SmallShell::getInstance().jobs.getMaxId());
         }
         exCommand->setBg(true);
         // below - set job in list to "stopped"
-        SmallShell::getInstance().jobs.getJobById(job_id)->setIsStopped(true);
-        cout << "smash: process" << pid << "was stopped" << endl;
+        SmallShell::getInstance().jobs.getJobById(exCommand->getJobId())->setIsStopped(true);
+        cout << "smash: process " << exCommand->getPid() << " was stopped" << endl;
         SmallShell::getInstance().sigZ = false;
-    }
+    } //haha
+
     SmallShell::getInstance().setCurrCommand(nullptr);
 }
 
@@ -584,8 +585,8 @@ void ForegroundCommand::execute() {
     cout << job->getCommand()->getCmd() << " : " << job->getCommand()->getPid() << endl;
     SmallShell::getInstance().setCurrCommand(job->getCommand());
     kill(job->getCommand()->getPid(), SIGCONT);
-    DO_SYS(waitpid(job->getCommand()->getPid(), nullptr, WUNTRACED)); /// OPTIONS was 0
-    postWaitPid(job->getCommand()->getPid(), job->getCommand()->getJobId(), job->getCommand());
+    DO_SYS(waitpid(job->getCommand()->getPid(), nullptr, WUNTRACED));
+    postWaitPid(job->getCommand());
 }
 
 BackgroundCommand::BackgroundCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(cmd_line), jobs(jobs) {}
