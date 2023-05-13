@@ -142,9 +142,9 @@ Command * SmallShell::CreateCommand(char* cmd_line) {
     string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
     bool isbg = _isBackgroundComamnd(cmd_line);
     string orig_cmd = cmd_line;
-    cout << orig_cmd; /// delete
-    string orig_cmd1 = orig_cmd.substr(0, orig_cmd.find('\n'));
-    cout << orig_cmd; /// delete
+    // cout << orig_cmd; /// delete
+    orig_cmd = orig_cmd.substr(0, orig_cmd.find('\n'));
+    // cout << orig_cmd; /// delete
     _removeBackgroundSign(cmd_line);//
     if (firstWord.compare("chprompt") == 0) {
         return new ChangePoromptCommand(cmd_line);
@@ -164,13 +164,19 @@ Command * SmallShell::CreateCommand(char* cmd_line) {
     else if (firstWord.compare("jobs") == 0) {
         return new JobsCommand(cmd_line, &jobs);
     }
+    else if (firstWord.compare("fg") == 0) {
+        return new ForegroundCommand(cmd_line, &jobs);
+    }
+    else if (firstWord.compare("bg") == 0) {
+        return new BackgroundCommand(cmd_line, &jobs);
+    }
     else if (firstWord.compare("") == 0) {
         return nullptr;
     }
     else { //external
         if (strchr(cmd_line, '*') || strchr(cmd_line, '?'))
-            return new ComplexExternalCommand(cmd_line, isbg, orig_cmd1);
-        return new SimpleExternalCommand(cmd_line, isbg, orig_cmd1);
+            return new ComplexExternalCommand(cmd_line, isbg, orig_cmd);
+        return new SimpleExternalCommand(cmd_line, isbg, orig_cmd);
     }
     //return nullptr;
 }
@@ -204,8 +210,7 @@ void Job::setIsStopped(bool isStopped) {
 }
 
 void Job::printJob() {
-    cout << "[" << job_id << "]" << command->getCmd() << " : " << command->getPid() << " " <<
-    difftime(time_added, time(nullptr)) << "secs";
+    cout << "[" << job_id << "]" << command->getCmd() << " : " << command->getPid() << " " << difftime(time_added, time(nullptr)) << "secs";
     if (is_stopped)
         cout << "(stopped)" <<endl;
     else
@@ -369,7 +374,7 @@ bool BuiltInCommand::getBg() {
     return false;
 }
 
-ExternalCommand::ExternalCommand(const char* cmd_line, bool isBg, std::string orig_cmd) : Command(cmd_line), job_id(-1), isBg(isBg), orig_cmd(orig_cmd), process_pid(0) {}
+ExternalCommand::ExternalCommand(const char* cmd_line, bool isBg, string orig_cmd) : Command(cmd_line), job_id(-1), isBg(isBg), orig_cmd(orig_cmd), process_pid(0) {}
 
 bool ExternalCommand::getBg() {
     return isBg;
@@ -418,18 +423,8 @@ void ExternalCommand::execute()
         }
         else { // foreground
             SmallShell::getInstance().setCurrCommand(this);
-            DO_SYS(waitpid(pid, nullptr, 0)); /// wstatus?
-            if(SmallShell::getInstance().sigC){
-                cout << "smash: got ctrl-C" <<endl;
-                cout << "smash: process" << pid << "was killed" << endl;
-                SmallShell::getInstance().sigC = false;
-            }
-            if(SmallShell::getInstance().sigZ) {  /// "if" or "else if" here?
-                cout << "smash: got ctrl-Z" <<endl;
-                cout << "smash: process" << pid << "was stopped" << endl;
-                SmallShell::getInstance().sigZ = false;
-            }
-            SmallShell::getInstance().setCurrCommand(nullptr);
+            DO_SYS(waitpid(pid, nullptr, WUNTRACED)); /// OPTIONS was 0
+            postWaitPid(pid, job_id, this);
         }
     }
 }
@@ -527,6 +522,90 @@ void JobsCommand::execute() {
     jobs_ptr->printJobsList();
 }
 
+ForegroundCommand::ForegroundCommand(const char* cmd_line, JobsList* jobs): BuiltInCommand(cmd_line), jobs(jobs){}
+
+void ForegroundCommand::execute() {
+    if(argc>2)
+        perror("smash error: fg: invalid arguments");
+    int index = jobs->getMaxId();
+    if(argc==2) {
+        try { index = stoi(string(argv[1])); }
+        catch (...) {
+            cerr << "smash error: fg: invalid arguments" << endl;
+            return;
+        }
+        if(index <= 0 || index > 100) {
+            cerr << "smash error: fg: invalid arguments" << endl;
+            return;
+        }
+    }
+    else{
+        if(index==0){
+            cerr << "smash error: fg: jobs list is empty" << endl;
+            return;
+        }
+    }
+    Job* job = jobs->getJobById(index);
+    if (job == nullptr) {
+        cerr << "smash error: fg: job-id " << argv[1] << " does not exist" << endl;
+        return;
+    }
+    job->getCommand()->setBg(false);
+    job->setIsStopped(false);
+    cout << job->getCommand()->getCmd() << " : " << job->getCommand()->getPid() << endl;
+    SmallShell::getInstance().setCurrCommand(job->getCommand());
+    kill(job->getCommand()->getPid(), SIGCONT);
+    DO_SYS(waitpid(job->getCommand()->getPid(), nullptr, WUNTRACED)); /// OPTIONS was 0
+    postWaitPid(job->getCommand()->getPid(), job->getCommand()->getJobId(), job->getCommand());
+}
+
+BackgroundCommand::BackgroundCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(cmd_line), jobs(jobs) {}
+
+void BackgroundCommand::execute() {
+    Job* cur_job = nullptr;
+    int cur_idx = -1;
+    if (argc > 2) {
+        cerr << "smash error: bg: invalid arguments" << endl;
+        return;
+    }
+    else if(argc == 2) {
+        try { cur_idx = stoi(string(argv[1])); }
+        catch (...) {
+            cerr << "smash error: bg: invalid arguments" << endl;
+            return;
+        }
+        if(cur_idx <= 0 || cur_idx > 100) {
+            cerr << "smash error: bg: invalid arguments" << endl;
+            return;
+        }
+        else { //proper index in argv
+            cur_job = jobs->getJobById(cur_idx);
+            if(cur_job == nullptr) {
+                cerr << "smash error: bg: job-id " << cur_idx << " does not exist" << endl;
+                return;
+            }
+        }
+    }
+    else { // no job_id argument
+        cur_job = jobs->getLastStoppedJob();
+        if(cur_job == nullptr) {
+            cerr << "smash error: bg: there is no stopped jobs to resume" << endl;
+            return;
+        }
+        else {
+            cur_idx = cur_job->getId();
+        }
+    }
+    // do for both cases:
+    if(cur_job->getIsStopped()) {
+        cout << cur_job->getCommand()->getCmd() << " : " << cur_job->getCommand()->getPid() << endl;
+        cur_job->setIsStopped(false);
+        kill(cur_job->getCommand()->getPid(), SIGCONT);
+    }
+    else { //command is not stopped!
+        cerr << "smash error: bg: job-id " << cur_idx << " is already running in the background" << endl;
+    }
+}
 
 QuitCommand::QuitCommand(const char* cmd_line, JobsList* jobs_ptr) : BuiltInCommand(cmd_line) {
     jobs_ptr = nullptr; /// omer 29/04 - debug - just for now..

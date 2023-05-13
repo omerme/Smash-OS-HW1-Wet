@@ -12,7 +12,7 @@ using namespace std;
  *  and if external if fg we use the flags
  *  changed it in ctrlZHandler
  *  **/
-void ctrlZHandler(int sig_num) {
+void ctrlZHandler(int sig_num) { // sig_num == SIGTSTP
     ExternalCommand* cmd = SmallShell::getInstance().getCurrCommand();
     if (cmd == nullptr) {
         cout << "smash: got ctrl-Z" << endl;
@@ -20,20 +20,16 @@ void ctrlZHandler(int sig_num) {
     }
     else { // external in fg
         SmallShell::getInstance().sigZ = true; /// for printing flag after return?
-        if(cmd->getJobId()==-1) { // if new in JobList
-            SmallShell::getInstance().jobs.addJob(new Job(cmd));
-            // addJob sets command->job_id.
-            // set command->job_id manually: cmd->setJobId(SmallShell::getInstance().jobs.getMaxId());
-        }
-        cmd->setBg(true);
-        // below - set job in list to "stopped"
-        SmallShell::getInstance().jobs.getJobById(cmd->getJobId())->setIsStopped(true);
-        kill(cmd->getPid(), sig_num); ///when do we do this? does it matter?
+        /** all code used to be here.. **/
+        kill(cmd->getPid(), SIGSTOP); ///when do we do this? does it matter?
+        //cout<< "It's me! Hi!" << endl;
+        return;
         /// how to print: "smash: process <foreground-PID> was stopped"? (only if a job was stopped)
     }
 }
 
-void ctrlCHandler(int sig_num) { // sig_num == SIGTSTP
+
+void ctrlCHandler(int sig_num) {  // sig_num == SIGINT
     if(SmallShell::getInstance().getCurrCommand() != nullptr){
         SmallShell::getInstance().sigC= true;
         kill(SmallShell::getInstance().getCurrCommand()->getPid(), sig_num);
@@ -42,7 +38,17 @@ void ctrlCHandler(int sig_num) { // sig_num == SIGTSTP
         cout << "smash: got ctrl-Z" <<endl;
 }
 
-void alarmHandler(int sig_num) { // sig_num == SIGINT
+void alarmHandler(int sig_num) {
   // TODO: Add your implementation
 }
 
+/** the code:
+ * if(cmd->getJobId()==-1) { // if new in JobList
+            SmallShell::getInstance().jobs.addJob(new Job(cmd));
+            // addJob sets command->job_id.
+            // set command->job_id manually: cmd->setJobId(SmallShell::getInstance().jobs.getMaxId());
+        }
+        cmd->setBg(true);
+        // below - set job in list to "stopped"
+        SmallShell::getInstance().jobs.getJobById(cmd->getJobId())->setIsStopped(true);
+ * **/
