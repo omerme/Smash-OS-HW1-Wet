@@ -6,6 +6,8 @@
 #include <sys/wait.h>
 #include <iomanip>
 #include "Commands.h"
+#include <signal.h>
+
 
 
 using namespace std;
@@ -99,6 +101,28 @@ void _removeBackgroundSign(char* cmd_line) {
   cmd_line[idx] = ' ';
   // truncate the command line string up to the last non-space character
   cmd_line[str.find_last_not_of(WHITESPACE, idx) + 1] = 0;
+}
+
+void postWaitPid(pid_t pid, int job_id, ExternalCommand* exCommand){
+    if(SmallShell::getInstance().sigC){
+        cout << "smash: got ctrl-C" <<endl;
+        cout << "smash: process" << pid << "was killed" << endl;
+        SmallShell::getInstance().sigC = false;
+    }
+    if(SmallShell::getInstance().sigZ) {  /// "if" or "else if" here?
+        cout << "smash: got ctrl-Z" <<endl;
+        if(job_id==-1) { // if new in JobList
+            SmallShell::getInstance().jobs.addJob(new Job(exCommand));
+            // addJob sets command->job_id.
+            // set command->job_id manually: cmd->setJobId(SmallShell::getInstance().jobs.getMaxId());
+        }
+        exCommand->setBg(true);
+        // below - set job in list to "stopped"
+        SmallShell::getInstance().jobs.getJobById(job_id)->setIsStopped(true);
+        cout << "smash: process" << pid << "was stopped" << endl;
+        SmallShell::getInstance().sigZ = false;
+    }
+    SmallShell::getInstance().setCurrCommand(nullptr);
 }
 
 // TODO: Add your implementation for classes in Commands.h 
@@ -374,6 +398,7 @@ bool BuiltInCommand::getBg() {
     return false;
 }
 
+
 ExternalCommand::ExternalCommand(const char* cmd_line, bool isBg, string orig_cmd) : Command(cmd_line), job_id(-1), isBg(isBg), orig_cmd(orig_cmd), process_pid(0) {}
 
 bool ExternalCommand::getBg() {
@@ -520,6 +545,10 @@ JobsCommand::JobsCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(
 
 void JobsCommand::execute() {
     jobs_ptr->printJobsList();
+}
+
+ExternalCommand* Job::getCommand() const {
+    return command;
 }
 
 ForegroundCommand::ForegroundCommand(const char* cmd_line, JobsList* jobs): BuiltInCommand(cmd_line), jobs(jobs){}

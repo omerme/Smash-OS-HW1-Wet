@@ -35,7 +35,7 @@ void ctrlCHandler(int sig_num) {  // sig_num == SIGINT
         kill(SmallShell::getInstance().getCurrCommand()->getPid(), sig_num);
     }
     else
-        cout << "smash: got ctrl-Z" <<endl;
+        cout << "smash: got ctrl-C" <<endl;
 }
 
 void alarmHandler(int sig_num) {

@@ -162,6 +162,7 @@ public:
     bool getIsStopped() const;
     void setIsStopped(bool isStopped);
     void printJob();
+    ExternalCommand* getCommand() const;
 
 
 };
@@ -195,6 +196,7 @@ class JobsCommand : public BuiltInCommand {
 };
 
 class ForegroundCommand : public BuiltInCommand {
+    JobsList* jobs;
     // TODO: Add your data members
  public:
     ForegroundCommand(const char* cmd_line, JobsList* jobs);
