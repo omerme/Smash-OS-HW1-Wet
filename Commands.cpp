@@ -103,8 +103,8 @@ void _removeBackgroundSign(char* cmd_line) {
 
 // TODO: Add your implementation for classes in Commands.h 
 
-SmallShell::SmallShell() : jobs(), prompt("smash"), prevWD(), curr_command(nullptr), sigZ(false),
-sigC(false), sigAlarm(false)
+SmallShell::SmallShell() : jobs(), prompt("smash"), prevWD(), curr_command(nullptr), sigC(false),
+sigZ(false), sigAlarm(false)
 {
     /// omer 26.4
     curWD = getcwd(nullptr,0);
@@ -162,7 +162,7 @@ Command * SmallShell::CreateCommand(char* cmd_line) {
         return new JobsCommand(cmd_line, &jobs);
     }
     else if (firstWord.compare("") == 0) {
-        cout << "oops! empty line!";
+        return nullptr;
     }
     else { //external
         if (strchr(cmd_line, '*') || strchr(cmd_line, '?'))
@@ -309,16 +309,18 @@ void SmallShell::executeCommand(const char *cmd_line_in)
     strcpy(cmd_line, cmd_line_in);
     ///if built-in:
     Command* cmd = CreateCommand(cmd_line);
-    if(!(cmd->getBg()) && (dynamic_cast<const ExternalCommand*>(cmd) != nullptr)) { /// if external in fg
-        curr_command = dynamic_cast<ExternalCommand*>(cmd);
+    if(cmd) { // if not empty line:
+        if(!(cmd->getBg()) && (dynamic_cast<const ExternalCommand*>(cmd) != nullptr)) { /// if external in fg
+            curr_command = dynamic_cast<ExternalCommand*>(cmd);
+        }
+        //     bool isWarrior =  dynamic_cast<const Warrior*>(curPlayer.get()) != nullptr;
+        cmd->execute();
+        if(!cmd->getBg()) { /// if not in back-ground
+            delete cmd;
+        }
+        curr_command= nullptr;
+        delete[] cmd_line;
     }
-    //     bool isWarrior =  dynamic_cast<const Warrior*>(curPlayer.get()) != nullptr;
-    cmd->execute();
-    if(!cmd->getBg()) { /// if not in back-ground
-        delete cmd;
-    }
-    curr_command= nullptr;
-    delete[] cmd_line;
   // TODO: Add your implementation here
   // for example:
   // Command* cmd = CreateCommand(cmd_line);
