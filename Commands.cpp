@@ -142,7 +142,10 @@ Command * SmallShell::CreateCommand(char* cmd_line) {
     string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
     bool isbg = _isBackgroundComamnd(cmd_line);
     string orig_cmd = cmd_line;
-    _removeBackgroundSign(cmd_line);
+    cout << orig_cmd; /// delete
+    string orig_cmd1 = orig_cmd.substr(0, orig_cmd.find('\n'));
+    cout << orig_cmd; /// delete
+    _removeBackgroundSign(cmd_line);//
     if (firstWord.compare("chprompt") == 0) {
         return new ChangePoromptCommand(cmd_line);
     }
@@ -166,8 +169,8 @@ Command * SmallShell::CreateCommand(char* cmd_line) {
     }
     else { //external
         if (strchr(cmd_line, '*') || strchr(cmd_line, '?'))
-            return new ComplexExternalCommand(cmd_line, isbg, orig_cmd);
-        return new SimpleExternalCommand(cmd_line, isbg, orig_cmd);
+            return new ComplexExternalCommand(cmd_line, isbg, orig_cmd1);
+        return new SimpleExternalCommand(cmd_line, isbg, orig_cmd1);
     }
     //return nullptr;
 }
