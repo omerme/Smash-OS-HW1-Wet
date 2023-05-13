@@ -103,10 +103,10 @@ void _removeBackgroundSign(char* cmd_line) {
   cmd_line[str.find_last_not_of(WHITESPACE, idx) + 1] = 0;
 }
 
-void postWaitPid(pid_t pid, int job_id, ExternalCommand* exCommand){
+void postWaitPid( ExternalCommand* exCommand){
     if(SmallShell::getInstance().sigC){
         cout << "smash: got ctrl-C" <<endl;
-        cout << "smash: process" << pid << "was killed" << endl;
+        cout << "smash: process " << exCommand->getPid() << " was killed" << endl;
         SmallShell::getInstance().sigC = false;
     }
     if(SmallShell::getInstance().sigZ) {  /// "if" or "else if" here?
@@ -450,7 +450,7 @@ void ExternalCommand::execute()
         else { // foreground
             SmallShell::getInstance().setCurrCommand(this);
             DO_SYS(waitpid(pid, nullptr, WUNTRACED)); /// OPTIONS was 0
-            postWaitPid(pid, job_id, this);
+            postWaitPid(this);
         }
     }
 }
