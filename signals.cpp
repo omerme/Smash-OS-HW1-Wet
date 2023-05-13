@@ -34,11 +34,12 @@ void ctrlZHandler(int sig_num) {
 }
 
 void ctrlCHandler(int sig_num) { // sig_num == SIGTSTP
-    // TODO: Add your implementation
-    SmallShell::getInstance().sigC= true;
     if(SmallShell::getInstance().getCurrCommand() != nullptr){
+        SmallShell::getInstance().sigC= true;
         kill(SmallShell::getInstance().getCurrCommand()->getPid(), sig_num);
     }
+    else
+        cout << "smash: got ctrl-Z" <<endl;
 }
 
 void alarmHandler(int sig_num) { // sig_num == SIGINT
