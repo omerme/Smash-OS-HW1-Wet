@@ -203,9 +203,6 @@ Command * SmallShell::CreateCommand(char* cmd_line) {
     else if (firstWord.compare("kill") == 0) {
         return new KillCommand(cmd_line, &jobs);
     }
-    else if (firstWord.compare("") == 0) {
-        return nullptr;
-    }
     else { //external
         if (strchr(cmd_line, '*') || strchr(cmd_line, '?'))
             return new ComplexExternalCommand(cmd_line, isbg, orig_cmd);
@@ -320,7 +317,7 @@ void JobsList::printJobsList() {
     }
 }
 
-void JobsList::killAllJobs(){} ///implement after signal handling
+void JobsList::killAllJobs(){} /// implement after signal handling
 
 void JobsList::removeFinishedJobs() {
     bool setMaxFlag = false;
@@ -328,9 +325,13 @@ void JobsList::removeFinishedJobs() {
         if(jobs[idx] == nullptr)
             continue;
         else {
+            // cerr << "check before removeFinished waitpid: job id = " << idx << endl; /// delete
+            // cout << "check before removeFinished waitpid: job id = " << idx << endl; /// delete
             pid_t wait_ret = waitpid(jobs[idx]->command->getPid(), nullptr, WNOHANG); //status?
-            if (wait_ret < 0) {
+            if (wait_ret == -1) {
                 perror("smash error: waitpid failed");
+                // cerr << "check: removeFinished waitpid failed! job id = " << idx << endl; /// delete
+                // cout << "check: removeFinished waitpid failed! job id = " << idx << endl; /// delete
             }
             else if (wait_ret==0) { // child not finished
                 if(setMaxFlag) {//if max_id needs to be re_set
@@ -497,7 +498,6 @@ KillCommand::KillCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(
 
 
 void KillCommand::execute() {
-    jobs->removeFinishedJobs();
     if (argc != 3){    //check correct amount of arguments
         cerr << "smash error: kill: invalid arguments" << endl;
         return;
@@ -545,7 +545,7 @@ void ForegroundCommand::execute() {
             return;
         }
         if(index <= 0 || index > 100) {
-            cerr << "smash error: fg: invalid arguments" << endl;
+            cerr << "smash error: fg: job-id " << argv[1] << " does not exist" << endl;
             return;
         }
     }
