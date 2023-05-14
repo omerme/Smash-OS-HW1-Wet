@@ -48,6 +48,10 @@ const int JOBS_MIN_IDX = 1;
 #define FUNC_EXIT()
 #endif
 
+
+/** *****************general functions***************** **/
+
+
 string _ltrim(const std::string& s)
 {
   size_t start = s.find_first_not_of(WHITESPACE);
@@ -126,7 +130,9 @@ void postWaitPid( ExternalCommand* exCommand){
     SmallShell::getInstance().setCurrCommand(nullptr);
 }
 
-// TODO: Add your implementation for classes in Commands.h 
+
+/** ***************** SmallShell ***************** **/
+
 
 SmallShell::SmallShell() : jobs(), prompt("smash"), prevWD(), curr_command(nullptr), sigC(false),
 sigZ(false), sigAlarm(false)
@@ -156,7 +162,6 @@ void SmallShell::setPrompt(std::string newPrompt) {
 ExternalCommand* SmallShell::getCurrCommand(){
     return curr_command;
 }
-
 
 /**
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
@@ -205,6 +210,49 @@ Command * SmallShell::CreateCommand(char* cmd_line) {
     }
     //return nullptr;
 }
+
+
+/// need to debug - something caused segfault (we played
+void SmallShell::executeCommand(const char *cmd_line_in)
+{
+    char *cmd_line = new char[strlen(cmd_line_in)+1]();
+    strcpy(cmd_line, cmd_line_in);
+    ///if built-in:
+    Command* cmd = CreateCommand(cmd_line);
+    if(cmd) { // if not empty line:
+        //if(!(cmd->getBg()) && (dynamic_cast<const ExternalCommand*>(cmd) != nullptr)) { /// if external in fg
+        //   curr_command = dynamic_cast<ExternalCommand*>(cmd);
+        //}
+        //     bool isWarrior =  dynamic_cast<const Warrior*>(curPlayer.get()) != nullptr;
+        cmd->execute();
+        if(!cmd->getBg()) { /// if not in back-ground
+            delete cmd;
+        }
+        //curr_command= nullptr;
+        delete[] cmd_line;
+    }
+    // TODO: Add your implementation here
+    // for example:
+    // Command* cmd = CreateCommand(cmd_line);
+    // cmd->execute();
+    // Please note that you must fork smash process for some commands (e.g., external commands....)
+}
+
+string SmallShell::getPrompt() const {
+    return this->prompt;
+}
+
+void SmallShell::changePrompt(string new_prompt) {
+    prompt = new_prompt;
+}
+
+void SmallShell::setCurrCommand(ExternalCommand* currCom){
+    curr_command = currCom;
+}
+
+
+
+/** ***************** Jobs ***************** **/
 
 
 //Job::Job(const char* cmd_line, bool isBg, const char* orig_cmd_line, int job_id) :
@@ -263,8 +311,6 @@ void JobsList::printJobsList() {
         }
     }
 }
-
-
 
 void JobsList::killAllJobs(){} ///implement after signal handling
 
@@ -335,43 +381,11 @@ Job * JobsList::getLastStoppedJob()
     return nullptr;
 }
 
-/// need to debug - something caused segfault (we played
-void SmallShell::executeCommand(const char *cmd_line_in)
-{
-    char *cmd_line = new char[strlen(cmd_line_in)+1]();
-    strcpy(cmd_line, cmd_line_in);
-    ///if built-in:
-    Command* cmd = CreateCommand(cmd_line);
-    if(cmd) { // if not empty line:
-        //if(!(cmd->getBg()) && (dynamic_cast<const ExternalCommand*>(cmd) != nullptr)) { /// if external in fg
-         //   curr_command = dynamic_cast<ExternalCommand*>(cmd);
-        //}
-        //     bool isWarrior =  dynamic_cast<const Warrior*>(curPlayer.get()) != nullptr;
-        cmd->execute();
-        if(!cmd->getBg()) { /// if not in back-ground
-            delete cmd;
-        }
-        //curr_command= nullptr;
-        delete[] cmd_line;
-    }
-  // TODO: Add your implementation here
-  // for example:
-  // Command* cmd = CreateCommand(cmd_line);
-  // cmd->execute();
-  // Please note that you must fork smash process for some commands (e.g., external commands....)
-}
 
-string SmallShell::getPrompt() const {
-    return this->prompt;
-}
 
-void SmallShell::changePrompt(string new_prompt) {
-    prompt = new_prompt;
-}
+/** ***************** Command ***************** **/
 
-void SmallShell::setCurrCommand(ExternalCommand* currCom){
-    curr_command = currCom;
-}
+
 
 Command::Command(const char *cmd_line) {
     ///dynamyc cast isBuiltIn
@@ -388,15 +402,98 @@ Command::~Command() {
     free(argv);
 }
 
-std::string ExternalCommand::getCmd() const{
-    return orig_cmd;
-}
+
+
+/** ***************** BuildInCommand ***************** **/
+
 
 
 BuiltInCommand::BuiltInCommand(const char *cmd_line) : Command(cmd_line) {}
 
 bool BuiltInCommand::getBg() {
     return false;
+}
+
+
+ChangePoromptCommand::ChangePoromptCommand(const char *cmd_line): BuiltInCommand(cmd_line){
+    if (argc >= 2)
+        prompt = string(argv[1]);
+    else
+        prompt = "smash";
+}
+
+/// omer 29/04 - debug - added ChangePoromptCommand d'tor:
+ChangePoromptCommand::~ChangePoromptCommand() {}
+
+
+void ChangePoromptCommand::execute() {
+    SmallShell::getInstance().setPrompt(prompt);
+}
+
+
+ShowPidCommand::ShowPidCommand(const char* cmd_line) : BuiltInCommand(cmd_line) {}
+
+void ShowPidCommand::execute()
+{
+    cout << "smash pid is " << getpid() << endl;
+}
+
+
+GetCurrDirCommand::GetCurrDirCommand(const char* cmd_line) : BuiltInCommand(cmd_line) {}
+
+void GetCurrDirCommand::execute()
+{
+    cout << SmallShell::getInstance().getCurWD() << endl;
+}
+
+
+ChangeDirCommand::ChangeDirCommand(const char* cmd_line, char** plastPwd): BuiltInCommand(cmd_line), prev(plastPwd){}
+
+void ChangeDirCommand::execute() {
+    if (argc > 2){
+        cerr << "smash error: cd: too many arguments" << endl;
+        return;
+    }
+    //int res;
+    string prev_dir = SmallShell::getInstance().getPrevWD(); //save the prev dir
+    if (string(argv[1]) == "-"){             ///cd with "-" arg
+        if (prev_dir.empty()){
+            cerr << "smash error: cd: OLDPWD not set" << endl;
+            return;
+        }
+        DO_SYS(chdir(prev_dir.c_str()));
+        //res = chdir(prev_dir.c_str());
+    }
+    else{                                   ///cd with path arg
+        DO_SYS(chdir(argv[1]));
+        //res = chdir(argv[1]);
+    }/*
+    if (res < 0){                            ///check chdir ret val
+        //perror("smash error: chdir failed");
+        return;
+    }*/
+    SmallShell::getInstance().setPrevWD(SmallShell::getInstance().getCurWD()); //update prev dir to old curr dir
+    SmallShell::getInstance().setCurWD(getcwd(nullptr,0)); //update curr dir
+}
+
+QuitCommand::QuitCommand(const char* cmd_line, JobsList* jobs_ptr) : BuiltInCommand(cmd_line) {
+    jobs_ptr = nullptr; /// omer 29/04 - debug - just for now..
+}
+
+void QuitCommand::execute() {
+    exit(0);
+}
+
+
+
+
+/** ***************** ExternalCommand ***************** **/
+
+
+
+
+std::string ExternalCommand::getCmd() const{
+    return orig_cmd;
 }
 
 
@@ -479,67 +576,6 @@ void ComplexExternalCommand::execParams() {
 
 void SimpleExternalCommand::execParams() {
     DO_SYS(execvp(argv[0], argv)); ///was &argv[1]
-}
-
-ChangePoromptCommand::ChangePoromptCommand(const char *cmd_line): BuiltInCommand(cmd_line){
-    if (argc >= 2)
-        prompt = string(argv[1]);
-    else
-        prompt = "smash";
-}
-
-/// omer 29/04 - debug - added ChangePoromptCommand d'tor:
-ChangePoromptCommand::~ChangePoromptCommand() {}
-
-
-void ChangePoromptCommand::execute() {
-    SmallShell::getInstance().setPrompt(prompt);
-}
-
-
-ShowPidCommand::ShowPidCommand(const char* cmd_line) : BuiltInCommand(cmd_line) {}
-
-void ShowPidCommand::execute()
-{
-    cout << "smash pid is " << getpid() << endl;
-}
-
-
-GetCurrDirCommand::GetCurrDirCommand(const char* cmd_line) : BuiltInCommand(cmd_line) {}
-
-void GetCurrDirCommand::execute()
-{
-    cout << SmallShell::getInstance().getCurWD() << endl;
-}
-
-
-ChangeDirCommand::ChangeDirCommand(const char* cmd_line, char** plastPwd): BuiltInCommand(cmd_line), prev(plastPwd){}
-
-void ChangeDirCommand::execute() {
-    if (argc > 2){
-        cerr << "smash error: cd: too many arguments" << endl;
-        return;
-    }
-    //int res;
-    string prev_dir = SmallShell::getInstance().getPrevWD(); //save the prev dir
-    if (string(argv[1]) == "-"){             ///cd with "-" arg
-        if (prev_dir.empty()){
-            cerr << "smash error: cd: OLDPWD not set" << endl;
-            return;
-        }
-        DO_SYS(chdir(prev_dir.c_str()));
-        //res = chdir(prev_dir.c_str());
-    }
-    else{                                   ///cd with path arg
-        DO_SYS(chdir(argv[1]));
-        //res = chdir(argv[1]);
-    }/*
-    if (res < 0){                            ///check chdir ret val
-        //perror("smash error: chdir failed");
-        return;
-    }*/
-    SmallShell::getInstance().setPrevWD(SmallShell::getInstance().getCurWD()); //update prev dir to old curr dir
-    SmallShell::getInstance().setCurWD(getcwd(nullptr,0)); //update curr dir
 }
 
 JobsCommand::JobsCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(cmd_line), jobs_ptr(jobs) {}
@@ -635,14 +671,6 @@ void BackgroundCommand::execute() {
     else { //command is not stopped!
         cerr << "smash error: bg: job-id " << cur_idx << " is already running in the background" << endl;
     }
-}
-
-QuitCommand::QuitCommand(const char* cmd_line, JobsList* jobs_ptr) : BuiltInCommand(cmd_line) {
-    jobs_ptr = nullptr; /// omer 29/04 - debug - just for now..
-}
-
-void QuitCommand::execute() {
-    exit(0);
 }
 
 
