@@ -998,22 +998,26 @@ void ChmodCommand::execute() {
         return;
     }
     int fileMod;
-    try { fileMod = stoi(string(argv[1])); }       //check the signal argument
+    try { fileMod = stoi(string(argv[1]), nullptr, 8); }       //check the signal argument
     catch (...) {
         cerr << "smash error: chmod: invalid arguments" << endl;
         return;
     }
-    if(fileMod < 0 || fileMod > (S_ISUID | S_ISGID | S_ISVTX | 777)) { // 777 - Max permission num
+    if(fileMod < 00 || fileMod > 07777) { // 777 - Max permission num
         cerr << "smash error: chmod: invalid arguments" << endl;
         return;
     }
-    int UIDFlag = (fileMod & S_ISUID);
-    int GIDFlag = (fileMod & S_ISGID);
-    int VTXFlag = (fileMod & S_ISVTX);
-    if(chmod(argv[2],fileMod | UIDFlag | GIDFlag | VTXFlag) == -1) {
+    if(chmod(argv[2],fileMod) == -1) {
         perror("smash error: chmod failed");
         return;
     }
+//    if(fileMod & S_ISUID) {
+//        return;
+//    }
+//
+//    }
+//    int GIDFlag = (fileMod & S_ISGID);
+//    int VTXFlag = (fileMod & S_ISVTX);
 }
 
 
@@ -1031,7 +1035,7 @@ int main() {
         // Additional code here
 
         // Add a delay to avoid consuming excessive resources
-        std::this_thread::sleep_for(std::chrono::seconds(10));
+        //std::this_thread::sleep_for(std::chrono::seconds(10));
     }
 
     return 0;
