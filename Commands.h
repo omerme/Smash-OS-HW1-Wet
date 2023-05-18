@@ -85,6 +85,11 @@ public:
 };
 
 class PipeCommand : public Command {
+    char* com1;
+    char* com2;
+    bool is_err;
+    int orig_wr;
+    int orig_rd;
     // TODO: Add your data members
  public:
     explicit PipeCommand(const char* cmd_line);
