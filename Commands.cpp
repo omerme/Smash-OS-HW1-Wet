@@ -982,7 +982,8 @@ void SetcoreCommand::execute() {
     cpu_set_t set;
     CPU_ZERO(&set);
     CPU_SET(core_num, &set);
-    if (sched_getaffinity(job->getCommand()->getPid(), sizeof(cpu_set_t), &set) == -1) {
+    int ret = sched_getaffinity(job->getCommand()->getPid(), sizeof(cpu_set_t), &set);
+    if ( ret == -1) {
         std::cerr << "smash error: setcore: invalid core number "<< std::endl;
         return;
     }
