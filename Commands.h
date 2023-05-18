@@ -244,9 +244,10 @@ class GetFileTypeCommand : public BuiltInCommand {
 };
 
 class SetcoreCommand : public BuiltInCommand {
+    JobsList* jobs;
     // TODO: Add your data members
  public:
-    SetcoreCommand(const char* cmd_line);
+    SetcoreCommand(const char* cmd_line, JobsList* jobs );
     virtual ~SetcoreCommand() {}
     void execute() override;
 };

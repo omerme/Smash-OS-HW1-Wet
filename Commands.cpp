@@ -899,19 +899,19 @@ void PipeCommand::execute()
         }
         /// gets stuck in waitpid!! but why?
         int status;
-        sleep(5); //check what  happens
-        int ret = waitpid(pid, &status, WNOHANG); ///add DO_SYS
-        cout << "check!: status: " << status << ", and ret: " << ret <<endl;
+        if (is_err)
+            DO_SYS(dup2(orig_wr, ERR));
+        else
+            DO_SYS(dup2(orig_wr, WRITE));
+        DO_SYS(dup2(orig_rd, READ));
+        DO_SYS(close(orig_wr));
+        DO_SYS(close(orig_rd));
+        //sleep(5); //check what  happens
+        DO_SYS(waitpid(pid, &status, 0));
+        delete[] com1;
+        delete[] com2;
+        //cout << "check!: status: " << status << ", and ret: " << ret <<endl;
     }
-    if (is_err)
-        DO_SYS(dup2(orig_wr, ERR));
-    else
-        DO_SYS(dup2(orig_wr, WRITE));
-    DO_SYS(dup2(orig_rd, READ));
-    DO_SYS(close(orig_wr));
-    DO_SYS(close(orig_rd));
-    delete[] com1;
-    delete[] com2;
 }
 
 bool PipeCommand::getBg() {
