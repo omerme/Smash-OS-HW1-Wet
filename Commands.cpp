@@ -925,7 +925,7 @@ GetFileTypeCommand::GetFileTypeCommand(const char* cmd_line) : BuiltInCommand(cm
 
 void GetFileTypeCommand::execute() {
     if(argc != 2) {
-        cerr << "smash error: gettype: invalid aruments" << endl;
+        cerr << "smash error: getfiletype: invalid aruments" << endl;
         return;
     }
     struct stat fileStat;
@@ -1002,11 +1002,14 @@ void ChmodCommand::execute() {
         cerr << "smash error: chmod: invalid arguments" << endl;
         return;
     }
-    if((fileMod <= 0 || fileMod > 1777)) { // 1777 - Max permission num
+    if(fileMod < 0 || fileMod > (S_ISUID | S_ISGID | S_ISVTX | 777)) { // 777 - Max permission num
         cerr << "smash error: chmod: invalid arguments" << endl;
         return;
     }
-    if(chmod(argv[2],fileMod) == -1) {
+    int UIDFlag = (fileMod & S_ISUID);
+    int GIDFlag = (fileMod & S_ISGID);
+    int VTXFlag = (fileMod & S_ISVTX);
+    if(chmod(argv[2],fileMod | UIDFlag | GIDFlag | VTXFlag) == -1) {
         perror("smash error: chmod failed");
         return;
     }
@@ -1032,5 +1035,9 @@ int main() {
 
     return 0;
 }
+
+
+ //COMPILING:
+ //g++ -o infinite_loop infinite_loop.cpp
 
   * */

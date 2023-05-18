@@ -235,7 +235,7 @@ class ChmodCommand : public BuiltInCommand {
 };
 
 class GetFileTypeCommand : public BuiltInCommand {
-    //std::string path;
+    // std::string path;
  public:
     GetFileTypeCommand(const char* cmd_line);
     virtual ~GetFileTypeCommand() {}
