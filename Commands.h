@@ -228,7 +228,6 @@ class TimeoutCommand : public BuiltInCommand {
 };
 
 class ChmodCommand : public BuiltInCommand {
-    // TODO: Add your data members
  public:
     ChmodCommand(const char* cmd_line);
     virtual ~ChmodCommand() {}
@@ -236,10 +235,11 @@ class ChmodCommand : public BuiltInCommand {
 };
 
 class GetFileTypeCommand : public BuiltInCommand {
-  // TODO: Add your data members
+    //std::string path;
  public:
     GetFileTypeCommand(const char* cmd_line);
     virtual ~GetFileTypeCommand() {}
+    //bool getBg() override;
     void execute() override;
 };
 

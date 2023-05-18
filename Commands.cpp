@@ -8,6 +8,10 @@
 #include "Commands.h"
 #include <signal.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+
+#include <unistd.h>
+#include <sched.h>
 
 
 
@@ -26,6 +30,8 @@ using namespace std;
 #define READ 0
 #define WRITE 1
 #define ERR 2
+
+
 
 const std::string WHITESPACE = " \n\r\t\f\v";
 /// omer 29/04 - debug
@@ -220,6 +226,15 @@ Command * SmallShell::CreateCommand(char* cmd_line) {
     }
     else if (firstWord.compare("kill") == 0) {
         return new KillCommand(cmd_line, &jobs);
+    }
+    else if (firstWord.compare("getfiletype") == 0) {
+        return new GetFileTypeCommand(cmd_line);
+    }
+    else if (firstWord.compare("setcore") == 0) {
+        return new SetcoreCommand(cmd_line, &jobs);
+    }
+    else if (firstWord.compare("chmod") == 0) {
+        return new ChmodCommand(cmd_line);
     }
     else { //external
         if (strchr(cmd_line, '*') || strchr(cmd_line, '?'))
@@ -781,7 +796,7 @@ RedirectionCommand::RedirectionCommand(const char* cmd_line) : Command(cmd_line)
 void RedirectionCommand::execute() {
     int appendOrTruncFlag = (redirectionType == ">>") ? O_APPEND : O_TRUNC;
     int redirectFile = open(fileName.c_str(), /*flags*/ O_WRONLY | O_CREAT | appendOrTruncFlag, //append is on if
-                            /*mode*/ S_IRWXU | S_IRWXG | S_IRWXO );/// all permissions for now... piazza?
+                            /*mode*/ /*S_IRWXU | S_IRWXG | S_IRWXO*/ 0655 ); /// -rw-r-xr-x
     if (redirectFile==SYSCALL_FAILED) { ///open check..?
         perror("smash error: waitpid failed");
     }
@@ -835,8 +850,8 @@ PipeCommand::PipeCommand(const char *cmd_line) : Command(cmd_line){
 }
 
 
-void PipeCommand::execute() {
-
+void PipeCommand::execute()
+{
     Command* command2 = SmallShell::getInstance().CreateCommand(com2);
     bool right_in = false;
     if (dynamic_cast<BuiltInCommand*>(command2) != nullptr){
@@ -873,7 +888,7 @@ void PipeCommand::execute() {
             DO_SYS(close(FD[READ]));
             SmallShell::getInstance().executeCommand(com2);
         }
-        else{      //external in right - left is the father
+        else {      //external in right - left is the father
             DO_SYS(close(FD[READ])); // close the write side of the pipe
             if (is_err)
                 DO_SYS(dup2(FD[WRITE], ERR));  //refer the pipe write to stderr
@@ -899,7 +914,123 @@ void PipeCommand::execute() {
     delete[] com2;
 }
 
-
 bool PipeCommand::getBg() {
     return false;
 }
+
+
+/// GetFileTypeCommand
+
+GetFileTypeCommand::GetFileTypeCommand(const char* cmd_line) : BuiltInCommand(cmd_line) {}
+
+void GetFileTypeCommand::execute() {
+    if(argc != 2) {
+        cerr << "smash error: gettype: invalid aruments" << endl;
+        return;
+    }
+    struct stat fileStat;
+    if(lstat(argv[1], &fileStat) == -1) {
+        perror("smash error: lstat failed");
+        return;
+    }
+    string fileType;
+    if (S_ISREG(fileStat.st_mode))
+        fileType = "regular file";
+    else if (S_ISDIR(fileStat.st_mode))
+        fileType = "directory";
+    else if (S_ISCHR(fileStat.st_mode))
+        fileType = "character device";
+    else if (S_ISBLK(fileStat.st_mode))
+        fileType = "block device";
+    else if (S_ISFIFO(fileStat.st_mode))
+        fileType = "FIFO";
+    else if (S_ISLNK(fileStat.st_mode))
+        fileType = "symbolic link";
+    else if (S_ISSOCK(fileStat.st_mode))
+        fileType = "socket";
+    ///else?
+    cout << argv[1] << "'s type is \"" << fileType << "\" and takes up " << fileStat.st_size << " bytes" << endl;
+}
+
+///do we need to add setBg? think not..
+//bool GetFileTypeCommand::getBg() {
+//    return false;
+//}
+
+SetcoreCommand::SetcoreCommand(const char *cmd_line, JobsList* jobs): BuiltInCommand(cmd_line), jobs(jobs) {}
+
+void SetcoreCommand::execute() {
+    if(argc != 3) {
+        cerr << "smash error: setcore: invalid arguments" << endl;
+        return;
+    }
+    int core_num;
+    int id_num;
+    try {
+        core_num = stoi(string(argv[2]));
+        id_num = stoi(string(argv[1]));
+    }       //check the signal argument
+    catch (...) {
+        cerr << "smash error: setcore: invalid arguments" << endl;
+        return;
+    }
+    Job* job = jobs->getJobById(id_num);
+    if (job == nullptr){
+        cerr << "smash error: setcore: job-id "<< id_num <<" does not exist" <<endl;
+        return;
+    }
+    cpu_set_t set;
+    CPU_ZERO(&set);
+    CPU_SET(core_num, &set);
+    if (sched_getaffinity(job->getCommand()->getPid(), sizeof(cpu_set_t), &set) == -1) {
+        std::cerr << "smash error: setcore: invalid core number "<< std::endl;
+        return;
+    }
+}
+
+
+ChmodCommand::ChmodCommand(const char* cmd_line) : BuiltInCommand(cmd_line) {}
+
+void ChmodCommand::execute() {
+    if(argc != 3) {
+        cerr << "smash error: chmod: invalid arguments" << endl;
+        return;
+    }
+    int fileMod;
+    try { fileMod = stoi(string(argv[1])); }       //check the signal argument
+    catch (...) {
+        cerr << "smash error: chmod: invalid arguments" << endl;
+        return;
+    }
+    if((fileMod <= 0 || fileMod > 1777)) { // 1777 - Max permission num
+        cerr << "smash error: chmod: invalid arguments" << endl;
+        return;
+    }
+    if(chmod(argv[2],fileMod) == -1) {
+        perror("smash error: chmod failed");
+        return;
+    }
+}
+
+
+/*
+ * infinite loop command:
+
+#include <iostream>
+#include <chrono>
+#include <thread>
+
+int main() {
+    while (true) {
+        // Code or actions to be executed within the infinite loop
+        //std::cout << "Running an infinite loop..." << std::endl;
+        // Additional code here
+
+        // Add a delay to avoid consuming excessive resources
+        std::this_thread::sleep_for(std::chrono::seconds(10));
+    }
+
+    return 0;
+}
+
+  * */
