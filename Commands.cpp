@@ -7,6 +7,7 @@
 #include <iomanip>
 #include "Commands.h"
 #include <signal.h>
+#include <fcntl.h>
 
 
 
@@ -19,6 +20,12 @@ using namespace std;
                 perror ( s.c_str() );  \
             }                      \
         } while(0)
+
+#define STDOUT_FD 1
+#define SYSCALL_FAILED (-1)
+#define READ 0
+#define WRITE 1
+#define ERR 2
 
 const std::string WHITESPACE = " \n\r\t\f\v";
 /// omer 29/04 - debug
@@ -33,7 +40,8 @@ const int JOBS_MIN_IDX = 1;
  * 1. implement c'tor, d'tor and execute
  * 2. add command name to SmallShell::CreateCommand
  * 3. if built-in - add:  _removeBackgroundSign(cmd_line);
- * 4. add to SmallShell::execute (if needed)
+ * 4. add to SmallShell::exec
+ * ute (if needed)
  * **/
 
 #if 0
@@ -166,7 +174,6 @@ ExternalCommand* SmallShell::getCurrCommand(){
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
 Command * SmallShell::CreateCommand(char* cmd_line) {
-	/// add more?
 	string cmd_s = _trim(string(cmd_line));
     string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
     bool isbg = _isBackgroundComamnd(cmd_line);
@@ -177,7 +184,16 @@ Command * SmallShell::CreateCommand(char* cmd_line) {
     if (firstWord.compare("") == 0 || cmd_s.compare("\n") == 0) {
         return nullptr;
     }
-    _removeBackgroundSign(cmd_line);//
+    //cout << "check SmallShell::CreateCommand: cmd_s is:" << cmd_s << "and FirstWord  is:" << firstWord << endl;
+    if (cmd_s.find('|') != string::npos) {
+        return new PipeCommand(cmd_line);
+    }
+    else if (cmd_s.find('>') != string::npos) {
+        _removeBackgroundSign(cmd_line);
+        return new RedirectionCommand(cmd_line);
+    }
+    //...
+    _removeBackgroundSign(cmd_line); //
     if (firstWord.compare("chprompt") == 0) {
         return new ChangePoromptCommand(cmd_line);
     }
@@ -219,6 +235,7 @@ void SmallShell::executeCommand(const char *cmd_line_in)
 {
     char *cmd_line = new char[strlen(cmd_line_in)+1]();
     strcpy(cmd_line, cmd_line_in);
+    //cout << "check in SmallShell::executeCommand:" << cmd_line << endl;
     ///if built-in:
     Command* cmd = CreateCommand(cmd_line);
     if(cmd != nullptr) { // if not empty line:
@@ -702,6 +719,8 @@ void ExternalCommand::execute()
     else if (pid == 0) { //child:
         setpgrp();
         //execvp(argv[0], &argv[1]);
+        //cout << "check:" << argv[0]<<endl;
+        //cout << "check:" << orig_cmd << endl;
         execParams();
         perror("smash error: execvp failed");
     }
@@ -746,3 +765,141 @@ void SimpleExternalCommand::execParams() {
 }
 
 
+/** ***************** SpecialCommand ***************** **/
+
+RedirectionCommand::RedirectionCommand(const char* cmd_line) : Command(cmd_line) {
+    string allCmdLine = cmd_line;
+    calledCMD_str = allCmdLine.substr(0, allCmdLine.find('>'));
+    calledCMD_charptr = calledCMD_str.c_str();
+    string redirectionPart = _trim(allCmdLine.substr(allCmdLine.find('>')));
+    redirectionType = (redirectionPart.find(">>")!=string::npos) ? ">>" : ">";
+    fileName = _trim(redirectionPart.substr(redirectionPart.find_first_not_of('>'),
+                                            redirectionPart.find('\n')));
+    origSTDOUT = dup(STDOUT_FILENO);
+}
+
+void RedirectionCommand::execute() {
+    int appendOrTruncFlag = (redirectionType == ">>") ? O_APPEND : O_TRUNC;
+    int redirectFile = open(fileName.c_str(), /*flags*/ O_WRONLY | O_CREAT | appendOrTruncFlag, //append is on if
+                            /*mode*/ S_IRWXU | S_IRWXG | S_IRWXO );/// all permissions for now... piazza?
+    if (redirectFile==SYSCALL_FAILED) { ///open check..?
+        perror("smash error: waitpid failed");
+    }
+    DO_SYS(dup2(redirectFile, STDOUT_FD)); //channel stdout to file
+    SmallShell::getInstance().executeCommand(calledCMD_charptr);
+    DO_SYS(dup2(origSTDOUT, STDOUT_FD)); //channel stdout back to default
+    DO_SYS(close(redirectFile));
+}
+
+bool RedirectionCommand::getBg() {
+    return false;
+}
+
+
+PipeCommand::PipeCommand(const char *cmd_line) : Command(cmd_line){
+    string cmd_s = string(cmd_line);
+    orig_rd = dup(READ);
+    if (orig_wr == SYSCALL_FAILED)
+        perror("smash error: dup failed");
+    size_t sep_idx = cmd_s.find("|&");
+    if (sep_idx == string::npos){
+        sep_idx = cmd_s.find('|');
+        is_err = false;
+        orig_wr = dup(WRITE);
+        if (orig_wr == SYSCALL_FAILED)
+            perror("smash error: dup failed");
+    }
+    else {
+        is_err = true;
+        orig_wr = dup(ERR);
+        if (orig_wr == SYSCALL_FAILED)
+            perror("smash error: dup failed");
+    }
+    string temp_com1 = cmd_s.substr(0,sep_idx);
+    //temp_com1 = temp_com1.append("\n");
+    int len = 1;
+    if (is_err)
+        len = 2;
+    string temp_com2 = cmd_s.substr(sep_idx+len, string::npos);
+    com1 = new char[temp_com1.length()+1]; //&temp_com1[0];
+    strcpy(com1, temp_com1.c_str());
+    com2 = new char[temp_com2.length()+1];//&temp_com2[0];
+    strcpy(com2, temp_com2.c_str());
+    //cout << "pipe command com1 is: " << com1 << endl;
+    //cout << "pipe command com2 is: " << com2 << endl;
+    _removeBackgroundSign(com1);
+    _removeBackgroundSign(com2);
+    //cout << "pipe command com1 after is: " << com1 << endl;
+    //cout << "pipe command com2 after is: " << com2 << endl;
+    /** 273.8 Ina'al Abuk **/
+}
+
+
+void PipeCommand::execute() {
+
+    Command* command2 = SmallShell::getInstance().CreateCommand(com2);
+    bool right_in = false;
+    if (dynamic_cast<BuiltInCommand*>(command2) != nullptr){
+        right_in = true;
+    }
+    delete command2;
+    int FD[2];
+    DO_SYS(pipe(FD));
+    pid_t pid = fork();
+    if (pid == SYSCALL_FAILED)
+        perror("smash error: fork failed");
+    if (pid == 0){   //son
+        if (not right_in){ // external in right - left is father
+            DO_SYS(close(FD[WRITE])); // close the write side of the pipe
+            DO_SYS(dup2(FD[READ], READ));  //refer the pipe read to stdin
+            DO_SYS(close(FD[READ]));
+            SmallShell::getInstance().executeCommand(com2);
+        }
+        else{   //build in right - right is father
+            DO_SYS(close(FD[READ])); // close the write side of the pipe
+            if (is_err)
+                DO_SYS(dup2(FD[WRITE], ERR));  //refer the pipe write to stdout
+            else
+                DO_SYS(dup2(FD[WRITE], WRITE));  //refer the pipe write to stdout
+            DO_SYS(close(FD[WRITE]));
+            SmallShell::getInstance().executeCommand(com1);
+        }
+        exit(0);
+    }
+    else {   //father
+        if (right_in){ // built-in in right - right is father
+            DO_SYS(close(FD[WRITE])); // close the write side of the pipe
+            DO_SYS(dup2(FD[READ], READ));  //refer the pipe read to stdin
+            DO_SYS(close(FD[READ]));
+            SmallShell::getInstance().executeCommand(com2);
+        }
+        else{      //external in right - left is the father
+            DO_SYS(close(FD[READ])); // close the write side of the pipe
+            if (is_err)
+                DO_SYS(dup2(FD[WRITE], ERR));  //refer the pipe write to stderr
+            else
+                DO_SYS(dup2(FD[WRITE], WRITE));  //refer the pipe write to stdout
+            DO_SYS(close(FD[WRITE]));
+            SmallShell::getInstance().executeCommand(com1);
+        }
+        /// gets stuck in waitpid!! but why?
+        int status;
+        sleep(5); //check what  happens
+        int ret = waitpid(pid, &status, WNOHANG); ///add DO_SYS
+        cout << "check!: status: " << status << ", and ret: " << ret <<endl;
+    }
+    if (is_err)
+        DO_SYS(dup2(orig_wr, ERR));
+    else
+        DO_SYS(dup2(orig_wr, WRITE));
+    DO_SYS(dup2(orig_rd, READ));
+    DO_SYS(close(orig_wr));
+    DO_SYS(close(orig_rd));
+    delete[] com1;
+    delete[] com2;
+}
+
+
+bool PipeCommand::getBg() {
+    return false;
+}

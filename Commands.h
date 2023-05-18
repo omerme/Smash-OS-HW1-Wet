@@ -89,21 +89,27 @@ class PipeCommand : public Command {
  public:
     explicit PipeCommand(const char* cmd_line);
     virtual ~PipeCommand() {}
+    bool getBg() override;
     void execute() override;
 };
 
 class RedirectionCommand : public Command {
- // TODO: Add your data members
+    std::string calledCMD_str;
+    const char* calledCMD_charptr;
+    std::string redirectionType;
+    std::string fileName;
+    int origSTDOUT;
+    // int newSTDOUT;
  public:
-    explicit RedirectionCommand(const char* cmd_line); /// here there was an wxplicit;
+    explicit RedirectionCommand(const char* cmd_line); /// here there was an explicit;
     virtual ~RedirectionCommand() {}
+    bool getBg() override;
     void execute() override;
     //void prepare() override;
     //void cleanup() override;
 };
 
 class ChangeDirCommand : public BuiltInCommand {
-// TODO: Add your data members
     char** prev;
 public:
     ChangeDirCommand(const char* cmd_line, char** plastPwd);
@@ -169,7 +175,6 @@ public:
 class JobsList {
     int max_id;
     std::vector<Job*> jobs;
-    // TODO: Add your data members
  public:
     JobsList();
     ~JobsList() = default;
@@ -182,7 +187,6 @@ class JobsList {
     //Job * getLastJob(int* lastJobId);
     int getMaxId() const;
     Job *getLastStoppedJob();
-    // TODO: Add extra methods or modify exisitng ones as needed
 };
 
 class JobsCommand : public BuiltInCommand {
@@ -195,7 +199,6 @@ class JobsCommand : public BuiltInCommand {
 
 class ForegroundCommand : public BuiltInCommand {
     JobsList* jobs;
-    // TODO: Add your data members
  public:
     ForegroundCommand(const char* cmd_line, JobsList* jobs);
     virtual ~ForegroundCommand() {}
