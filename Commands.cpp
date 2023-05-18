@@ -738,6 +738,7 @@ void ExternalCommand::execute()
         //cout << "check:" << orig_cmd << endl;
         execParams();
         perror("smash error: execvp failed");
+        exit(0); /// michal 18.5
     }
     else { //parent:
         setPid(pid);
@@ -752,6 +753,7 @@ void ExternalCommand::execute()
         }
     }
 }
+
 
 
 ComplexExternalCommand::ComplexExternalCommand(const char* cmd_line, bool isBg, std::string orig_cmd) : ExternalCommand(cmd_line, isBg, orig_cmd) {
