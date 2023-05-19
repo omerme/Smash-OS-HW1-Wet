@@ -984,7 +984,7 @@ void SetcoreCommand::execute() {
     cpu_set_t set;
     CPU_ZERO(&set);
     CPU_SET(core_num, &set);
-    int ret = sched_getaffinity(job->getCommand()->getPid(), sizeof(cpu_set_t), &set);
+    int ret = sched_setaffinity(job->getCommand()->getPid(), sizeof(cpu_set_t), &set);
     if ( ret == -1) {
         std::cerr << "smash error: setcore: invalid core number "<< std::endl;
         return;
@@ -1026,9 +1026,9 @@ void ChmodCommand::execute() {
 /*
  * infinite loop command:
 
-#include <iostream>
-#include <chrono>
-#include <thread>
+//#include <iostream>
+//#include <chrono>
+//#include <thread>
 
 int main() {
     while (true) {
