@@ -21,7 +21,8 @@ using namespace std;
             if( (syscall) == -1) { \
                 string syscallStr = (string)#syscall;                \
                 string s = "smash error: " + syscallStr.substr(0, syscallStr.find('(')) + " failed";            \
-                perror ( s.c_str() );  \
+                perror ( s.c_str() );                                \
+                return;                   \
             }                      \
         } while(0)
 
@@ -800,7 +801,8 @@ void RedirectionCommand::execute() {
     int redirectFile = open(fileName.c_str(), /*flags*/ O_WRONLY | O_CREAT | appendOrTruncFlag, //append is on if
                             /*mode*/ /*S_IRWXU | S_IRWXG | S_IRWXO*/ 0655 ); /// -rw-r-xr-x
     if (redirectFile==SYSCALL_FAILED) { ///open check..?
-        perror("smash error: waitpid failed");
+        perror("smash error: open failed");
+        return;
     }
     DO_SYS(dup2(redirectFile, STDOUT_FD)); //channel stdout to file
     SmallShell::getInstance().executeCommand(calledCMD_charptr);
