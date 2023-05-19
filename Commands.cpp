@@ -818,21 +818,27 @@ bool RedirectionCommand::getBg() {
 PipeCommand::PipeCommand(const char *cmd_line) : Command(cmd_line){
     string cmd_s = string(cmd_line);
     orig_rd = dup(READ);
-    if (orig_wr == SYSCALL_FAILED)
+    if (orig_wr == SYSCALL_FAILED) {
         perror("smash error: dup failed");
+        return;
+    }
     size_t sep_idx = cmd_s.find("|&");
     if (sep_idx == string::npos){
         sep_idx = cmd_s.find('|');
         is_err = false;
         orig_wr = dup(WRITE);
-        if (orig_wr == SYSCALL_FAILED)
+        if (orig_wr == SYSCALL_FAILED) {
             perror("smash error: dup failed");
+            return;
+        }
     }
     else {
         is_err = true;
         orig_wr = dup(ERR);
-        if (orig_wr == SYSCALL_FAILED)
+        if (orig_wr == SYSCALL_FAILED) {
             perror("smash error: dup failed");
+            return;
+        }
     }
     string temp_com1 = cmd_s.substr(0,sep_idx);
     //temp_com1 = temp_com1.append("\n");
@@ -844,12 +850,8 @@ PipeCommand::PipeCommand(const char *cmd_line) : Command(cmd_line){
     strcpy(com1, temp_com1.c_str());
     com2 = new char[temp_com2.length()+1];//&temp_com2[0];
     strcpy(com2, temp_com2.c_str());
-    //cout << "pipe command com1 is: " << com1 << endl;
-    //cout << "pipe command com2 is: " << com2 << endl;
     _removeBackgroundSign(com1);
     _removeBackgroundSign(com2);
-    //cout << "pipe command com1 after is: " << com1 << endl;
-    //cout << "pipe command com2 after is: " << com2 << endl;
     /** 273.8 Ina'al Abuk **/
 }
 
@@ -865,8 +867,10 @@ void PipeCommand::execute()
     int FD[2];
     DO_SYS(pipe(FD));
     pid_t pid = fork();
-    if (pid == SYSCALL_FAILED)
+    if (pid == SYSCALL_FAILED) {
         perror("smash error: fork failed");
+        return;
+    }
     if (pid == 0){   //son
         if (not right_in){ // external in right - left is father
             DO_SYS(close(FD[WRITE])); // close the write side of the pipe
